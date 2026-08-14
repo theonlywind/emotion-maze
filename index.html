@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>食走壓力，食出好心情</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="stage">
+  <div id="frame">
+
+    <div id="hud">
+      <div class="hud-left">
+        <span class="hud-label">時間</span>
+        <span id="time">00</span>
+      </div>
+      <div class="hud-mid">
+        <div id="slogan"></div>
+        <div class="progress"><div id="progressFill"></div></div>
+        <div class="hud-stats">
+          <span>情緒詞彙 <b id="tokens">0/0</b></span>
+          <span>已安撫 <b id="soothed">0/4</b></span>
+        </div>
+      </div>
+      <div class="hud-players" id="playerBars"></div>
+    </div>
+
+    <div id="canvasWrap">
+      <canvas id="game"></canvas>
+
+      <div id="timeWarning" class="floating top"></div>
+      <div id="controllerNote" class="floating top2"></div>
+      <div id="gentleTip" class="floating bottom"></div>
+
+      <div class="panel" id="attractPanel">
+        <div class="attract-title" id="attractSlogan"></div>
+        <div class="attract-sub">情緒探索迷宮</div>
+        <ul class="menu" id="attractMenu"></ul>
+        <div class="attract-prompt" id="attractPrompt"></div>
+        <div class="attract-hint">方向鍵 / WASD、藍牙手掣，或者喺畫面上掃</div>
+      </div>
+
+      <div class="panel" id="charactersPanel">
+        <div class="sub-title" id="charactersTitle"></div>
+        <div class="char-cards" id="charCards"></div>
+        <div class="sub-footer" id="charactersFooter"></div>
+        <div class="sub-hint" id="charactersBack"></div>
+      </div>
+
+      <div class="panel" id="controllersPanel">
+        <div class="sub-title" id="controllersTitle"></div>
+        <div class="pad-slots" id="padSlots"></div>
+        <div class="sub-footer" id="controllersHint"></div>
+        <div class="sub-hint" id="controllersBack"></div>
+      </div>
+
+      <div class="panel" id="infoPanel">
+        <div class="info-line" id="infoLine"></div>
+      </div>
+
+      <div class="panel" id="preInfoPanel">
+        <div class="info-line" id="preInfoLine"></div>
+        <div class="pre-chars" id="preChars"></div>
+        <div class="sub-hint" id="preInfoHint"></div>
+      </div>
+
+      <div class="panel" id="endPanel">
+        <div class="end-message" id="endMessage"></div>
+        <ul class="end-scores" id="endScores"></ul>
+      </div>
+
+      <div class="panel" id="boardPanel">
+        <div class="board-title" id="boardTitle"></div>
+        <ol class="board-list" id="boardList"></ol>
+      </div>
+
+      <div class="panel" id="entryPanel">
+        <div class="entry-player" id="entryPlayer"></div>
+        <div class="entry-title" id="entryTitle"></div>
+        <div class="entry-score">分數 <b id="entryScore">0</b></div>
+        <div class="entry-letters" id="entryLetters"></div>
+        <div class="entry-hint">打英文字母或數字，Enter 落實<br>用手掣：上下揀字，左右換位，A 掣落實</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="staffMenu">
+  <div class="staff-card">
+    <h2 id="staffTitle"></h2>
+    <div class="staff-row">
+      <span id="staffDurationLabel"></span>
+      <div class="staff-control">
+        <button id="staffDurationPrev">◀</button>
+        <b id="staffDurationValue"></b>
+        <button id="staffDurationNext">▶</button>
+      </div>
+    </div>
+    <div class="staff-row">
+      <span id="staffPlayersLabel"></span>
+      <div class="staff-control">
+        <button id="staffPlayersPrev">◀</button>
+        <b id="staffPlayersValue"></b>
+        <button id="staffPlayersNext">▶</button>
+      </div>
+    </div>
+    <div class="staff-actions">
+      <button id="staffFullscreen">全螢幕開／關</button>
+      <button id="staffReset">重置今日高分榜</button>
+      <button id="staffClose" class="primary">返回遊戲</button>
+    </div>
+    <p class="staff-hint" id="staffHint"></p>
+  </div>
+</div>
+
+<div id="loading">載入緊素材…</div>
+
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
