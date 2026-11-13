@@ -6,7 +6,6 @@ const $ = (id) => document.getElementById(id);
 const UI = {
   init() {
     const T = GAME_DATA.uiText;
-    $('slogan').textContent = T.slogan_zh;
     $('attractSlogan').textContent = T.slogan_zh;
     $('attractPrompt').textContent = T.attract_mode.loop_prompt_zh;
     $('boardTitle').textContent = T.high_score_board.title_zh;
@@ -179,13 +178,40 @@ const UI = {
 
   setHudVisible(v) { $('hud').classList.toggle('visible', v); },
 
+  // 四格「已安撫」：每安撫一次就填一格，格內係嗰個角色安撫成功嘅樣。
+  // 過關條件係安撫次數（requiredSoothed 次），所以按次序填格，而唔係逐個角色打剔。
+  renderSoothedSlots(session) {
+    const sig = session.soothedLog.join(',');
+    if (sig === this._soothedSig) return;
+    this._soothedSig = sig;
+    const box = $('soothedSlots');
+    box.innerHTML = '';
+    for (let i = 0; i < session.requiredSoothed; i++) {
+      const slot = document.createElement('span');
+      const id = session.soothedLog[i];
+      slot.className = 'soothe-slot' + (id ? ' done' : '');
+      if (id) {
+        const key = `${id}_caught_gentle_01`;
+        const img = document.createElement('img');
+        img.src = Assets.images[key] ? Assets.images[key].src : '';
+        img.alt = '';
+        slot.appendChild(img);
+        const tick = document.createElement('i');
+        tick.textContent = '✓';
+        slot.appendChild(tick);
+      }
+      box.appendChild(slot);
+    }
+  },
+  _soothedSig: null,
+
   updateHud(session) {
     $('time').textContent = String(Math.ceil(session.timeLeft)).padStart(2, '0');
     $('time').classList.toggle('low', session.timeLeft <= 10);
     const pct = session.requiredTokens > 0
       ? Math.min(100, (session.tokensCollected / session.requiredTokens) * 100) : 0;
     $('progressFill').style.width = pct + '%';
-    $('soothed').textContent = `${session.charactersSoothed}/${session.requiredSoothed}`;
+    this.renderSoothedSlots(session);
     $('tokens').textContent = `${session.tokensCollected}/${session.requiredTokens}`;
   },
 
@@ -224,12 +250,39 @@ const UI = {
   showLifeLost(player, playerCount) {
     const T = GAME_DATA.uiText.in_game;
     const who = `P${player.slot + 1}`;
+    this.hitFeedback();
     let text;
     if (player.out) text = T.player_out_zh.replace('{p}', who);
     else if (player.lives === 1) text = T.life_last_zh;
     else text = T.life_lost_zh.replace('{n}', player.lives);
     if (!player.out && playerCount > 1) text = `${who}　${text}`;
     this.showGentleTip(text, 2000);
+  },
+
+  // 開局／食咗安撫代幣嗰陣嘅大字目標提示
+  showGoalHint(text, ms) {
+    const el = $('goalHint');
+    el.textContent = text;
+    el.classList.add('visible');
+    clearTimeout(this._goalTimer);
+    this._goalTimer = setTimeout(() => el.classList.remove('visible'), ms);
+  },
+  hideGoalHint() {
+    clearTimeout(this._goalTimer);
+    $('goalHint').classList.remove('visible');
+  },
+
+  // 被掂到：紅邊閃一下 + 輕微震動（單次、0.5 秒，唔係連續閃爍；系統設定要減少動態就唔震）
+  hitFeedback() {
+    const flash = $('hitFlash');
+    const wrap = $('canvasWrap');
+    for (const el of [flash, wrap]) el.classList.remove('hit');
+    void flash.offsetWidth;   // 強制重排，連續被掂都可以重新播
+    for (const el of [flash, wrap]) el.classList.add('hit');
+    clearTimeout(this._hitTimer);
+    this._hitTimer = setTimeout(() => {
+      for (const el of [flash, wrap]) el.classList.remove('hit');
+    }, 600);
   },
 
   showGentleTip(text, seconds = 2000) {

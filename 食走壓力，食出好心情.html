@@ -38,7 +38,8 @@ html, body {
 
 /* canvas 672x408（28x17 格 × 24px，比例 1.647），加上 HUD 高度之後按視窗等比縮放 */
 #frame {
-  width: min(96vw, calc((96vh - 92px) * 1.647));
+  width: min(96vw, calc((96vh - 110px) * 1.647));
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -58,12 +59,12 @@ html, body {
 }
 #hud.visible { visibility: visible; }
 
-.hud-label { font-size: 11px; opacity: .65; display: block; }
+.hud-label { font-size: 14px; opacity: .7; display: block; }
 
-.hud-left { text-align: center; min-width: 62px; }
+.hud-left { text-align: center; min-width: 76px; }
 #time {
   font-family: "Courier New", monospace;
-  font-size: 30px;
+  font-size: 44px;
   font-weight: bold;
   color: var(--warm);
   line-height: 1;
@@ -71,12 +72,11 @@ html, body {
 #time.low { color: #ffa24d; }
 
 .hud-mid { flex: 1; min-width: 0; }
-#slogan { font-size: 13px; color: var(--calm); margin-bottom: 4px; }
 
 .progress {
-  height: 9px;
+  height: 12px;
   background: #131a3d;
-  border-radius: 5px;
+  border-radius: 6px;
   overflow: hidden;
 }
 #progressFill {
@@ -88,12 +88,39 @@ html, body {
 
 .hud-stats {
   display: flex;
-  gap: 16px;
-  font-size: 11px;
-  opacity: .8;
-  margin-top: 4px;
+  align-items: center;
+  gap: 24px;
+  white-space: nowrap;
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 6px;
 }
 .hud-stats b { color: var(--warm); font-family: "Courier New", monospace; }
+.hud-soothe { display: flex; align-items: center; gap: 8px; }
+#soothedSlots { display: inline-flex; gap: 6px; }
+.soothe-slot {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 2px dashed #3a4585;
+  border-radius: 50%;
+}
+.soothe-slot.done { border: 2px solid var(--warm); background: rgba(255, 217, 61, .15); }
+.soothe-slot img { width: 100%; height: 100%; object-fit: contain; }
+.soothe-slot i {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #3ddc84;
+  color: #04210f;
+  font-style: normal;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: center;
+}
 
 /* ---- 每位玩家嘅即時安心值 ---- */
 
@@ -117,7 +144,7 @@ html, body {
 
 .pbar-name {
   font-family: "Courier New", monospace;
-  font-size: 11px;
+  font-size: 18px;
   font-weight: bold;
   color: var(--c);
   line-height: 1;
@@ -125,12 +152,12 @@ html, body {
 .pbar-pips { display: flex; gap: 2px; }
 .pbar-pips i {
   font-style: normal;
-  font-size: 12px;
+  font-size: 26px;
   line-height: 1;
   color: #2a3466;
   transition: color .25s;
 }
-.pbar-pips i.on { color: var(--c); }
+.pbar-pips i.on { color: #ff5a7a; }
 
 /* ---------------- 畫面 ---------------- */
 
@@ -155,9 +182,10 @@ html, body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  padding: 7px 14px;
+  padding: 8px 22px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 24px;
+  font-weight: bold;
   background: rgba(255, 248, 230, .95);
   color: #2b2415;
   opacity: 0;
@@ -168,8 +196,70 @@ html, body {
 }
 .floating.visible { opacity: 1; }
 .floating.top { top: 10px; background: rgba(255, 217, 61, .95); }
-.floating.top2 { top: 48px; background: rgba(143, 233, 255, .95); }
+.floating.top2 { top: 72px; background: rgba(143, 233, 255, .95); }
 .floating.bottom { bottom: 14px; }
+
+/* 畫面窄（細螢幕／4 人局）：HUD 收細少少，確保唔會斷行或者爆出畫面 */
+@container (max-width: 950px) {
+  .hud-left { min-width: 60px; }
+  #time { font-size: 36px; }
+  .hud-stats { font-size: 20px; gap: 14px; }
+  .soothe-slot { width: 30px; height: 30px; }
+  .soothe-slot i { width: 15px; height: 15px; font-size: 11px; line-height: 15px; right: -5px; bottom: -5px; }
+  .pbar { padding: 3px 6px; }
+  .pbar-name { font-size: 14px; }
+  .pbar-pips i { font-size: 20px; }
+  #hud { gap: 10px; }
+  .hud-players { gap: 5px; }
+}
+
+/* 開局／食咗安撫代幣嘅大字目標提示 */
+.goal-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 94%;
+  padding: 10px 26px;
+  border-radius: 999px;
+  background: rgba(143, 233, 255, .96);
+  color: #04222b;
+  font-size: 26px;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 0 24px rgba(143, 233, 255, .6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s;
+  z-index: 6;
+}
+.goal-hint.visible { opacity: 1; }
+
+/* 被掂到：紅邊閃一下 + 輕微震動，單次 0.5 秒 */
+#hitFlash {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 0 rgba(255, 70, 90, 0);
+  z-index: 7;
+}
+#hitFlash.hit { animation: hit-flash .5s ease-out; }
+@keyframes hit-flash {
+  0% { box-shadow: inset 0 0 70px 22px rgba(255, 70, 90, .8); }
+  100% { box-shadow: inset 0 0 70px 22px rgba(255, 70, 90, 0); }
+}
+#canvasWrap.hit { animation: hit-shake .3s ease-out; }
+@keyframes hit-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-5px, 2px); }
+  40% { transform: translate(5px, -2px); }
+  60% { transform: translate(-3px, 1px); }
+  80% { transform: translate(3px, -1px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #canvasWrap.hit { animation: none; }
+}
 
 /* ---------------- 全螢幕面板 ---------------- */
 
@@ -496,11 +586,10 @@ html, body {
         <span id="time">00</span>
       </div>
       <div class="hud-mid">
-        <div id="slogan"></div>
         <div class="progress"><div id="progressFill"></div></div>
         <div class="hud-stats">
           <span>情緒詞彙 <b id="tokens">0/0</b></span>
-          <span>已安撫 <b id="soothed">0/4</b></span>
+          <span class="hud-soothe">安撫 <span id="soothedSlots"></span></span>
         </div>
       </div>
       <div class="hud-players" id="playerBars"></div>
@@ -509,6 +598,8 @@ html, body {
     <div id="canvasWrap">
       <canvas id="game"></canvas>
 
+      <div id="goalHint" class="goal-hint"></div>
+      <div id="hitFlash"></div>
       <div id="timeWarning" class="floating top"></div>
       <div id="controllerNote" class="floating top2"></div>
       <div id="gentleTip" class="floating bottom"></div>
@@ -752,6 +843,9 @@ window.GAME_DATA = {
       // 生命：被情緒角色掂到扣一條，唔會回復；扣到零就出局，
       // 全部玩家出局就 Game Over（2026-11 由「唔死亡、唔懲罰」改成有輸有贏，
       // 因為試玩後覺得完全冇挑戰）。{n} 會換成剩低幾多條命。
+      // 開局目標提示：細路一開波就要知道做乜（食發光圈 → 追住情緒安撫）
+      goal_hint_zh: "食角落發光圈，追住情緒去安撫佢！",
+      pellet_eaten_zh: "追住佢哋，安撫佢！",
       lives_label_zh: "生命",
       life_lost_zh: "小心！仲有 {n} 條命",
       life_last_zh: "最後一條命喇，加油！",
@@ -1467,6 +1561,7 @@ class Session {
     this.running = true;
     this.tokensCollected = 0;
     this.charactersSoothed = 0;
+    this.soothedLog = [];     // 按次序記低每次安撫咗邊個角色（HUD 四格用）
     this.scores = [0, 0, 0, 0];
     this.warningFired = false;
     this.baseRequired = Maze.requiredTokens();
@@ -1499,8 +1594,9 @@ class Session {
     this.checkWin();
   }
 
-  onSoothed(slot) {
+  onSoothed(slot, characterId) {
     this.charactersSoothed++;
+    this.soothedLog.push(characterId);
     this.scores[slot] += 5;   // 安撫比收集代幣分數高，鼓勵主動安撫互動
     this.checkWin();
   }
@@ -1681,19 +1777,29 @@ const Render = {
       ctx.fill();
     }
 
-    // 安撫技巧代幣：一呼一吸咁脹縮，同「深呼吸」意象呼應
-    const pulse = 0.8 + Math.sin(time * 2.2) * 0.2;
+    // 安撫技巧代幣：一呼一吸咁脹縮，同「深呼吸」意象呼應。
+    // 要夠搶眼，細路先會主動去食：比普通代幣大三倍，外面再加一圈向外擴散嘅光環。
+    const pulse = 0.85 + Math.sin(time * 2.6) * 0.15;
+    const ringPhase = (time * 0.9) % 1;
     for (const key of Maze.pellets) {
       const [gx, gy] = key.split(',').map(Number);
       const c = Maze.centerOf(gx, gy);
       ctx.beginPath();
-      ctx.arc(c.x, c.y, TILE * 0.34 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(120, 230, 255, 0.20)';
+      ctx.arc(c.x, c.y, TILE * 0.62 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(120, 230, 255, 0.22)';
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(c.x, c.y, TILE * 0.2 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = '#8fe9ff';
+      ctx.arc(c.x, c.y, TILE * (0.4 + 0.5 * ringPhase), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(160, 240, 255, ${0.9 * (1 - ringPhase)})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, TILE * 0.32 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = '#d4f8ff';
       ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#6fdcff';
+      ctx.stroke();
     }
   },
 
@@ -1714,6 +1820,27 @@ const Render = {
     return off;
   },
 
+  // 玩家頭上嘅剩餘生命：細路眼睛望住迷宮，唔使望返去 HUD 都知仲有幾多條命
+  drawLivesAbove(p, x, y) {
+    const ctx = this.ctx;
+    const max = GAME_DATA.config.lives;
+    const size = TILE * 0.5;
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.font = `bold ${size}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const gap = size * 0.95;
+    // 放喺玩家下面：上面已經有 P1/P2 標籤
+    const cy = Math.min(Maze.height * TILE - size * 0.6, y + SPRITE_DRAW + size * 0.05);
+    for (let i = 0; i < max; i++) {
+      const cx = p.x + (i - (max - 1) / 2) * gap;
+      ctx.fillStyle = i < p.lives ? '#ff5a7a' : 'rgba(255,255,255,0.18)';
+      ctx.fillText('♥', cx, cy);
+    }
+    ctx.restore();
+  },
+
   drawPlayer(p) {
     const ctx = this.ctx;
     ctx.save();
@@ -1732,6 +1859,7 @@ const Render = {
         }
       }
       ctx.drawImage(img, x, y, SPRITE_DRAW, SPRITE_DRAW);
+      if (!p.out) this.drawLivesAbove(p, x, y);
     }
 
     if (this.playerCount > 1 || !p.connected) {
@@ -1824,7 +1952,6 @@ const $ = (id) => document.getElementById(id);
 const UI = {
   init() {
     const T = GAME_DATA.uiText;
-    $('slogan').textContent = T.slogan_zh;
     $('attractSlogan').textContent = T.slogan_zh;
     $('attractPrompt').textContent = T.attract_mode.loop_prompt_zh;
     $('boardTitle').textContent = T.high_score_board.title_zh;
@@ -1997,13 +2124,40 @@ const UI = {
 
   setHudVisible(v) { $('hud').classList.toggle('visible', v); },
 
+  // 四格「已安撫」：每安撫一次就填一格，格內係嗰個角色安撫成功嘅樣。
+  // 過關條件係安撫次數（requiredSoothed 次），所以按次序填格，而唔係逐個角色打剔。
+  renderSoothedSlots(session) {
+    const sig = session.soothedLog.join(',');
+    if (sig === this._soothedSig) return;
+    this._soothedSig = sig;
+    const box = $('soothedSlots');
+    box.innerHTML = '';
+    for (let i = 0; i < session.requiredSoothed; i++) {
+      const slot = document.createElement('span');
+      const id = session.soothedLog[i];
+      slot.className = 'soothe-slot' + (id ? ' done' : '');
+      if (id) {
+        const key = `${id}_caught_gentle_01`;
+        const img = document.createElement('img');
+        img.src = Assets.images[key] ? Assets.images[key].src : '';
+        img.alt = '';
+        slot.appendChild(img);
+        const tick = document.createElement('i');
+        tick.textContent = '✓';
+        slot.appendChild(tick);
+      }
+      box.appendChild(slot);
+    }
+  },
+  _soothedSig: null,
+
   updateHud(session) {
     $('time').textContent = String(Math.ceil(session.timeLeft)).padStart(2, '0');
     $('time').classList.toggle('low', session.timeLeft <= 10);
     const pct = session.requiredTokens > 0
       ? Math.min(100, (session.tokensCollected / session.requiredTokens) * 100) : 0;
     $('progressFill').style.width = pct + '%';
-    $('soothed').textContent = `${session.charactersSoothed}/${session.requiredSoothed}`;
+    this.renderSoothedSlots(session);
     $('tokens').textContent = `${session.tokensCollected}/${session.requiredTokens}`;
   },
 
@@ -2042,12 +2196,39 @@ const UI = {
   showLifeLost(player, playerCount) {
     const T = GAME_DATA.uiText.in_game;
     const who = `P${player.slot + 1}`;
+    this.hitFeedback();
     let text;
     if (player.out) text = T.player_out_zh.replace('{p}', who);
     else if (player.lives === 1) text = T.life_last_zh;
     else text = T.life_lost_zh.replace('{n}', player.lives);
     if (!player.out && playerCount > 1) text = `${who}　${text}`;
     this.showGentleTip(text, 2000);
+  },
+
+  // 開局／食咗安撫代幣嗰陣嘅大字目標提示
+  showGoalHint(text, ms) {
+    const el = $('goalHint');
+    el.textContent = text;
+    el.classList.add('visible');
+    clearTimeout(this._goalTimer);
+    this._goalTimer = setTimeout(() => el.classList.remove('visible'), ms);
+  },
+  hideGoalHint() {
+    clearTimeout(this._goalTimer);
+    $('goalHint').classList.remove('visible');
+  },
+
+  // 被掂到：紅邊閃一下 + 輕微震動（單次、0.5 秒，唔係連續閃爍；系統設定要減少動態就唔震）
+  hitFeedback() {
+    const flash = $('hitFlash');
+    const wrap = $('canvasWrap');
+    for (const el of [flash, wrap]) el.classList.remove('hit');
+    void flash.offsetWidth;   // 強制重排，連續被掂都可以重新播
+    for (const el of [flash, wrap]) el.classList.add('hit');
+    clearTimeout(this._hitTimer);
+    this._hitTimer = setTimeout(() => {
+      for (const el of [flash, wrap]) el.classList.remove('hit');
+    }, 600);
   },
 
   showGentleTip(text, seconds = 2000) {
@@ -2330,6 +2511,7 @@ class Game {
       if (Maze.pellets.delete(key)) {
         Sfx.powerPickup();
         Sfx.pursuitMode();
+        UI.showGoalHint(GAME_DATA.uiText.in_game.pellet_eaten_zh, 3500);
         for (const c of this.characters) c.enterVulnerable();
       }
     }
@@ -2348,7 +2530,7 @@ class Game {
         if (Math.hypot(c.x - p.x, c.y - p.y) > r) continue;
 
         if (c.isVulnerable) {
-          this.session.onSoothed(p.slot);
+          this.session.onSoothed(p.slot, c.id);
           Render.addBubble(c.x, c.y, c.caughtLine || GAME_DATA.sharedRules.respawn_message_zh);
           Sfx.calmSuccess();
           c.enter(CharState.CAUGHT);
@@ -2439,6 +2621,7 @@ const App = {
 
     switch (state) {
       case Flow.ATTRACT:
+        UI.hideGoalHint();
         this.game = null;
         Maze.reset();          // 還原代幣，等 attract 畫面見到完整迷宮
         UI.hideTimeWarning();
@@ -2457,6 +2640,7 @@ const App = {
 
       case Flow.PLAYING:
         UI._playerSig = null;   // 迫 HUD 重新砌返玩家生命格
+        UI._soothedSig = null;
         this.game = new Game();
         this.game.session.onCompleted = (won) => {
           if (won) Sfx.levelClear();
@@ -2464,10 +2648,12 @@ const App = {
           this.enter(Flow.END);
         };
         UI.showPanel(null);
+        UI.showGoalHint(GAME_DATA.uiText.in_game.goal_hint_zh, 9000);
         break;
 
       case Flow.END:
         UI.hideTimeWarning();
+        UI.hideGoalHint();
         UI.setEndMessage(this.game.session, this.game.players.length);
         UI.showPanel('endPanel');
         break;

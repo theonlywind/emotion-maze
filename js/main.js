@@ -83,6 +83,7 @@ class Game {
       if (Maze.pellets.delete(key)) {
         Sfx.powerPickup();
         Sfx.pursuitMode();
+        UI.showGoalHint(GAME_DATA.uiText.in_game.pellet_eaten_zh, 3500);
         for (const c of this.characters) c.enterVulnerable();
       }
     }
@@ -101,7 +102,7 @@ class Game {
         if (Math.hypot(c.x - p.x, c.y - p.y) > r) continue;
 
         if (c.isVulnerable) {
-          this.session.onSoothed(p.slot);
+          this.session.onSoothed(p.slot, c.id);
           Render.addBubble(c.x, c.y, c.caughtLine || GAME_DATA.sharedRules.respawn_message_zh);
           Sfx.calmSuccess();
           c.enter(CharState.CAUGHT);
@@ -192,6 +193,7 @@ const App = {
 
     switch (state) {
       case Flow.ATTRACT:
+        UI.hideGoalHint();
         this.game = null;
         Maze.reset();          // 還原代幣，等 attract 畫面見到完整迷宮
         UI.hideTimeWarning();
@@ -210,6 +212,7 @@ const App = {
 
       case Flow.PLAYING:
         UI._playerSig = null;   // 迫 HUD 重新砌返玩家生命格
+        UI._soothedSig = null;
         this.game = new Game();
         this.game.session.onCompleted = (won) => {
           if (won) Sfx.levelClear();
@@ -217,10 +220,12 @@ const App = {
           this.enter(Flow.END);
         };
         UI.showPanel(null);
+        UI.showGoalHint(GAME_DATA.uiText.in_game.goal_hint_zh, 9000);
         break;
 
       case Flow.END:
         UI.hideTimeWarning();
+        UI.hideGoalHint();
         UI.setEndMessage(this.game.session, this.game.players.length);
         UI.showPanel('endPanel');
         break;

@@ -94,19 +94,29 @@ const Render = {
       ctx.fill();
     }
 
-    // 安撫技巧代幣：一呼一吸咁脹縮，同「深呼吸」意象呼應
-    const pulse = 0.8 + Math.sin(time * 2.2) * 0.2;
+    // 安撫技巧代幣：一呼一吸咁脹縮，同「深呼吸」意象呼應。
+    // 要夠搶眼，細路先會主動去食：比普通代幣大三倍，外面再加一圈向外擴散嘅光環。
+    const pulse = 0.85 + Math.sin(time * 2.6) * 0.15;
+    const ringPhase = (time * 0.9) % 1;
     for (const key of Maze.pellets) {
       const [gx, gy] = key.split(',').map(Number);
       const c = Maze.centerOf(gx, gy);
       ctx.beginPath();
-      ctx.arc(c.x, c.y, TILE * 0.34 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(120, 230, 255, 0.20)';
+      ctx.arc(c.x, c.y, TILE * 0.62 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(120, 230, 255, 0.22)';
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(c.x, c.y, TILE * 0.2 * pulse, 0, Math.PI * 2);
-      ctx.fillStyle = '#8fe9ff';
+      ctx.arc(c.x, c.y, TILE * (0.4 + 0.5 * ringPhase), 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(160, 240, 255, ${0.9 * (1 - ringPhase)})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, TILE * 0.32 * pulse, 0, Math.PI * 2);
+      ctx.fillStyle = '#d4f8ff';
       ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#6fdcff';
+      ctx.stroke();
     }
   },
 
@@ -127,6 +137,27 @@ const Render = {
     return off;
   },
 
+  // 玩家頭上嘅剩餘生命：細路眼睛望住迷宮，唔使望返去 HUD 都知仲有幾多條命
+  drawLivesAbove(p, x, y) {
+    const ctx = this.ctx;
+    const max = GAME_DATA.config.lives;
+    const size = TILE * 0.5;
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.font = `bold ${size}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const gap = size * 0.95;
+    // 放喺玩家下面：上面已經有 P1/P2 標籤
+    const cy = Math.min(Maze.height * TILE - size * 0.6, y + SPRITE_DRAW + size * 0.05);
+    for (let i = 0; i < max; i++) {
+      const cx = p.x + (i - (max - 1) / 2) * gap;
+      ctx.fillStyle = i < p.lives ? '#ff5a7a' : 'rgba(255,255,255,0.18)';
+      ctx.fillText('♥', cx, cy);
+    }
+    ctx.restore();
+  },
+
   drawPlayer(p) {
     const ctx = this.ctx;
     ctx.save();
@@ -145,6 +176,7 @@ const Render = {
         }
       }
       ctx.drawImage(img, x, y, SPRITE_DRAW, SPRITE_DRAW);
+      if (!p.out) this.drawLivesAbove(p, x, y);
     }
 
     if (this.playerCount > 1 || !p.connected) {
