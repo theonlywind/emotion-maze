@@ -749,6 +749,13 @@ class Session {
 const NAME_LENGTH = 5;
 const NAME_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';   // 只准英文字母同數字
 
+// 用部機本地時區嘅日期（例如香港時間），唔好用 toISOString()：
+// 嗰個係 UTC 日期，香港早上 8 點先轉日，攤位一早開機玩過嘅分數會喺 8 點後重開時被清走
+function localDateKey(d = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const HighScores = {
   KEY: 'emotion_maze_high_scores',
   MAX: 10,
@@ -758,7 +765,7 @@ const HighScores = {
     try {
       const raw = localStorage.getItem(this.KEY);
       const parsed = raw ? JSON.parse(raw) : null;
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateKey();
       this.entries = (parsed && parsed.date === today && Array.isArray(parsed.entries)) ? parsed.entries : [];
     } catch (e) {
       this.entries = [];
@@ -768,7 +775,7 @@ const HighScores = {
   save() {
     try {
       localStorage.setItem(this.KEY, JSON.stringify({
-        date: new Date().toISOString().slice(0, 10),
+        date: localDateKey(),
         entries: this.entries
       }));
     } catch (e) { /* 私隱模式下寫唔到就當今日唔記錄，唔影響遊玩 */ }
