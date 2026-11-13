@@ -381,6 +381,7 @@ const StaffMenu = {
   open: false,
   holdTimer: 0,
   resetPending: false,
+  debugTimer: 0,
   escLatched: false,   // 長按 Esc 開咗之後，要放開先可以用 Esc 閂返（避免 key repeat 即刻閂返）
 
   CONFIG_KEY: 'emotion_maze_staff_config',
@@ -422,11 +423,32 @@ const StaffMenu = {
   update(dt) {
     if (this.open) {
       if (!Input.keys['escape']) this.escLatched = false;
+      this.debugTimer -= dt;
+      if (this.debugTimer <= 0) { this.debugTimer = 0.2; this.refreshPadDebug(); }
       return;
     }
     const holding = Input.keys['escape'] || Input.backHeldCount() >= 2;
     this.holdTimer = holding ? this.holdTimer + dt : 0;
     if (this.holdTimer >= 3) this.openMenu();
+  },
+
+  // 手掣診斷：列出瀏覽器見到嘅每隻手掣——邊個 slot、型號、對應方式、軸數值、被撳住嘅掣。
+  // 手掣「自己郁」嗰陣，睇呢度就知道係邊隻手掣、邊個軸／掣一直有數值。
+  refreshPadDebug() {
+    const el = $('staffPadDebug');
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const lines = [];
+    for (let i = 0; i < pads.length; i++) {
+      const pad = pads[i];
+      if (!pad) continue;
+      const slot = Input._pads.indexOf(i);
+      const axes = Array.from(pad.axes).map((a) => (Number.isFinite(a) ? a.toFixed(2) : 'NaN')).join(' ');
+      const down = pad.buttons.map((b, n) => (b.pressed ? n : null)).filter((n) => n !== null).join(',');
+      const n = Input._neutral[i];
+      lines.push(`#${i} ${slot >= 0 ? 'P' + (slot + 1) : '未入局'} ${String(pad.id).slice(0, 60)} [${pad.mapping || '非標準'}]`
+        + `\n  軸: ${axes}${n ? `  (校正 ${n[0].toFixed(2)},${n[1].toFixed(2)})` : ''}\n  撳住嘅掣: ${down || '冇'}`);
+    }
+    el.textContent = lines.length ? lines.join('\n') : '見唔到任何手掣（先撳一下手掣任何掣）';
   },
 
   openMenu() {

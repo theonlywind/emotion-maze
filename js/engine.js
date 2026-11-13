@@ -105,6 +105,10 @@ const Sfx = {
 // 輸入：鍵盤 + Gamepad API（最多 4 人，支援 hot-plug）
 // ---------------------------------------------------------------------------
 
+const STICK_ON = 0.5;          // 搖桿撳到幾耐先算開始郁
+const STICK_OFF = 0.35;        // 郁緊之後放到幾細先算放手
+const STICK_REST_MAX = 0.6;    // 靜止值喺 ±0.6 以內先當漂移去校正
+
 const Input = {
   keys: {},
   _confirmEdge: false,
@@ -190,7 +194,35 @@ const Input = {
     const pad = this._pad(slot);
     if (!pad) return false;
     if (pad.buttons.some((b) => b.pressed)) return true;
-    return pad.axes.some((a) => Math.abs(a) > 0.35);
+    // 只睇校正後嘅左搖桿；其他軸（例如部分手掣嘅扳機靜止值係 -1）唔計，否則會常亮
+    const [ax, ay] = this._calibratedStick(pad);
+    return Math.hypot(ax, ay) >= STICK_ON;
+  },
+
+  // ---- 搖桿校正 + 死區 ----
+  // 唔少手掣（尤其用耐咗嘅）搖桿放開時唔係剛好 0，會有少少「漂移」，
+  // 死區太細就會令玩家自己行。做法：
+  //  1. 手掣被偵測到嗰陣，記低搖桿靜止值當作 0 點（只接受漂移範圍內嘅值，企定喺邊都唔當 0）
+  //  2. 啟動門檻 STICK_ON（0.5），放開門檻 STICK_OFF（0.35）：撳到夠力先郁，郁緊嗰陣可以輕少少，
+  //     避免喺門檻邊緣一郁一停
+  _neutral: {},          // gamepad index -> [x, y]
+  _stickOn: [false, false, false, false],
+
+  _calibrate(pad) {
+    const rest = (v) => (Number.isFinite(v) && Math.abs(v) <= STICK_REST_MAX ? v : 0);
+    this._neutral[pad.index] = [rest(pad.axes[0]), rest(pad.axes[1])];
+  },
+
+  _calibratedStick(pad) {
+    const n = this._neutral[pad.index] || [0, 0];
+    const fin = (v) => (Number.isFinite(v) ? v : 0);
+    // 減去靜止值之後，按各方向剩低嘅行程拉返去 -1..1（靜止值偏向某邊，嗰邊行程變短，唔拉返就撳唔夠力）
+    const axis = (v, rest) => {
+      const d = fin(v) - rest;
+      const room = d >= 0 ? 1 - rest : 1 + rest;
+      return room > 0.2 ? Math.max(-1, Math.min(1, d / room)) : d;
+    };
+    return [axis(pad.axes[0], n[0]), axis(pad.axes[1], n[1])];
   },
 
   // 每 frame 掃描一次，補捉未經 event 通知嘅手掣（部分瀏覽器要先撳掣先報 connected）
@@ -203,14 +235,22 @@ const Input = {
       const idx = this._pads[slot];
       if (idx !== null && (!pads[idx] || !pads[idx].connected)) this._remove(idx);
     }
+    // 新入嘅手掣校正搖桿；已經走咗嘅手掣清除校正值，下次插返重新校正
+    for (let i = 0; i < pads.length; i++) {
+      const assigned = this._pads.includes(i);
+      if (assigned && pads[i] && !(i in this._neutral)) this._calibrate(pads[i]);
+      if (!assigned) delete this._neutral[i];
+    }
   },
 
   moveVector(slot) {
     const pad = this._pad(slot);
     let x = 0, y = 0;
     if (pad) {
-      const ax = pad.axes[0] || 0, ay = pad.axes[1] || 0;
-      if (Math.hypot(ax, ay) >= 0.35) { x = ax; y = ay; }
+      const [ax, ay] = this._calibratedStick(pad);
+      const mag = Math.hypot(ax, ay);
+      this._stickOn[slot] = mag >= (this._stickOn[slot] ? STICK_OFF : STICK_ON);
+      if (this._stickOn[slot]) { x = ax; y = ay; }
       if (pad.buttons[12] && pad.buttons[12].pressed) y = -1;
       else if (pad.buttons[13] && pad.buttons[13].pressed) y = 1;
       if (pad.buttons[14] && pad.buttons[14].pressed) x = -1;
