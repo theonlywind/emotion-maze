@@ -171,12 +171,18 @@ const Input = {
     return pads[idx] || null;
   },
 
+  // 實際會入局嘅玩家數：只計喺志工設定「人數上限」以內嘅手掣
+  // （之前計晒所有已連接手掣，所以調低人數上限完全冇效）
   activePlayerCount() {
-    const n = this._pads.filter((p) => p !== null).length;
+    const n = this._pads.filter((p, slot) => p !== null && slot < GAME_DATA.config.max_players).length;
     return n;
   },
 
+  // 手掣有冇插住（唔理人數上限，手掣連接畫面用）
   isSlotConnected(slot) { return this._pads[slot] !== null; },
+
+  // 手掣有插住，而且喺人數上限以內：呢位玩家先可以入局
+  isSlotActive(slot) { return this._pads[slot] !== null && slot < GAME_DATA.config.max_players; },
 
   // 手掣型號名（Switch 式手掣畫面顯示用），太長就截短
   padName(slot) {

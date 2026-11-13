@@ -28,7 +28,7 @@ class Game {
     this.time = 0;
 
     for (let slot = 0; slot < 4; slot++) {
-      if (Input.isSlotConnected(slot)) this.addPlayer(slot);
+      if (Input.isSlotActive(slot)) this.addPlayer(slot);
     }
     if (this.players.length === 0) this.addPlayer(0);   // 零手掣時用鍵盤開一個玩家
 
@@ -41,6 +41,7 @@ class Game {
   }
 
   addPlayer(slot) {
+    if (slot >= GAME_DATA.config.max_players) return;   // 超出志工設定嘅人數上限
     if (this.players.some((p) => p.slot === slot)) return;
     const spawn = GAME_DATA.level.player_spawn_points_grid.find((s) => s.player_slot === slot)
       || GAME_DATA.level.player_spawn_points_grid[0];
