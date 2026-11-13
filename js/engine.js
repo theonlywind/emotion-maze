@@ -669,6 +669,7 @@ class Session {
     this.running = true;
     this.tokensCollected = 0;
     this.charactersSoothed = 0;
+    this.soothedLog = [];     // 按次序記低每次安撫咗邊個角色（HUD 四格用）
     this.scores = [0, 0, 0, 0];
     this.warningFired = false;
     this.baseRequired = Maze.requiredTokens();
@@ -701,8 +702,9 @@ class Session {
     this.checkWin();
   }
 
-  onSoothed(slot) {
+  onSoothed(slot, characterId) {
     this.charactersSoothed++;
+    this.soothedLog.push(characterId);
     this.scores[slot] += 5;   // 安撫比收集代幣分數高，鼓勵主動安撫互動
     this.checkWin();
   }
