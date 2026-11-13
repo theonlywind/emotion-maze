@@ -1070,6 +1070,7 @@ const Input = {
   _remove(padIndex) {
     const slot = this._pads.indexOf(padIndex);
     if (slot === -1) return;
+    delete this._neutral[padIndex];   // 同一個 index 換咗另一隻手掣，唔可以沿用舊手掣嘅校正值
     this._pads[slot] = null;
     if (this.onPlayerLeft) this.onPlayerLeft(slot);
   },
