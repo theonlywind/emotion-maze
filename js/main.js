@@ -60,30 +60,20 @@ class Game {
     this.time += dt;
     this.session.update(dt);
     for (const p of this.players) p.update(dt);
-    for (const c of this.characters) c.update(dt, this.players.filter((p) => p.connected));
+    for (const c of this.characters) c.update(dt, this.players.filter((p) => p.connected && !p.out));
 
     this.collectTokens();
     this.resolveContacts();
     this.updateChompRule();
-    this.announceRecoveries();
     Render.updateBubbles(dt);
-  }
 
-  // 安心值回滿嗰陣講一句肯定說話，令「平復返」呢件事有正面回饋，唔止係一格燈著返
-  announceRecoveries() {
-    for (const p of this.players) {
-      if (p.justRecovered > 0 && !p._recoveryAnnounced) {
-        p._recoveryAnnounced = true;
-        UI.showGentleTip(GAME_DATA.uiText.in_game.calm_recovered_zh, 1800);
-      } else if (p.justRecovered <= 0) {
-        p._recoveryAnnounced = false;
-      }
-    }
+    // 全部玩家命用晒 = Game Over
+    if (this.players.every((p) => p.out)) this.session.end(false, true);
   }
 
   collectTokens() {
     for (const p of this.players) {
-      if (!p.connected) continue;
+      if (!p.connected || p.out) continue;
       const g = p.grid;
       const key = `${g.gx},${g.gy}`;
       if (Maze.tokens.delete(key)) {
@@ -107,7 +97,7 @@ class Game {
     const r = this.catchRadius();
     for (const c of this.characters) {
       for (const p of this.players) {
-        if (!p.connected) continue;
+        if (!p.connected || p.out) continue;
         if (Math.hypot(c.x - p.x, c.y - p.y) > r) continue;
 
         if (c.isVulnerable) {
@@ -115,10 +105,8 @@ class Game {
           Render.addBubble(c.x, c.y, c.caughtLine || GAME_DATA.sharedRules.respawn_message_zh);
           Sfx.calmSuccess();
           c.enter(CharState.CAUGHT);
-        } else if (c.isActiveChaser && p.gentlyReset()) {
-          // 安心值跌到零：唔係死亡，係一段深呼吸時間，玩家照樣郁得，完咗安心值回滿
-          UI.showGentleTip(p.breathing ? GAME_DATA.uiText.in_game.breath_recover_zh : null,
-            p.breathing ? GAME_DATA.config.breath_recover_seconds * 1000 : 2000);
+        } else if (c.isActiveChaser && p.hit()) {
+          UI.showLifeLost(p, this.players.length);
           Sfx.playerCaught();
         }
       }
@@ -221,10 +209,11 @@ const App = {
         break;
 
       case Flow.PLAYING:
-        UI._playerSig = null;   // 迫 HUD 重新砌返玩家安心值格
+        UI._playerSig = null;   // 迫 HUD 重新砌返玩家生命格
         this.game = new Game();
         this.game.session.onCompleted = (won) => {
           if (won) Sfx.levelClear();
+          else if (this.game.session.gameOver) Sfx.gameOver();
           this.enter(Flow.END);
         };
         UI.showPanel(null);
