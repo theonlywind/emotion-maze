@@ -111,6 +111,7 @@ const Input = {
   _pads: [null, null, null, null],   // slot -> gamepad index
   _prevConfirm: [false, false, false, false],
   _prevBack: [false, false, false, false],
+  roundLimit: 0,         // 進行緊嘅一局開局時鎖低嘅人數上限（唔喺局中 = 0）
   onPlayerJoined: null,
   onPlayerLeft: null,
 
@@ -152,7 +153,9 @@ const Input = {
   _assign(padIndex) {
     if (this._pads.includes(padIndex)) return;
     const slot = this._pads.indexOf(null);
-    if (slot === -1 || slot >= GAME_DATA.config.max_players) return;
+    // 局進行中：上限用「開局時鎖低嘅」同現時設定較大嗰個，等局中途調低上限都唔會令已入局嘅玩家斷線後接唔返
+    const limit = Math.max(GAME_DATA.config.max_players, this.roundLimit || 0);
+    if (slot === -1 || slot >= limit) return;
     this._pads[slot] = padIndex;
     if (this.onPlayerJoined) this.onPlayerJoined(slot);
   },
@@ -171,12 +174,19 @@ const Input = {
     return pads[idx] || null;
   },
 
-  activePlayerCount() {
-    const n = this._pads.filter((p) => p !== null).length;
+  // 實際會入局嘅玩家數：只計喺「人數上限」以內嘅手掣
+  // （之前計晒所有已連接手掣，所以調低人數上限完全冇效）。
+  // limit：一局開始時鎖低嘅上限；唔傳就用現時志工設定。
+  activePlayerCount(limit = GAME_DATA.config.max_players) {
+    const n = this._pads.filter((p, slot) => p !== null && slot < limit).length;
     return n;
   },
 
+  // 手掣有冇插住（唔理人數上限，手掣連接畫面用）
   isSlotConnected(slot) { return this._pads[slot] !== null; },
+
+  // 手掣有插住，而且喺人數上限以內：呢位玩家先可以入局
+  isSlotActive(slot, limit = GAME_DATA.config.max_players) { return this._pads[slot] !== null && slot < limit; },
 
   // 手掣型號名（Switch 式手掣畫面顯示用），太長就截短
   padName(slot) {
@@ -666,6 +676,8 @@ class EmotionCharacter extends GridMover {
 class Session {
   constructor() {
     this.timeLeft = GAME_DATA.config.session_duration_seconds;
+    // 一局開始時鎖低人數上限：局中途改志工設定唔會影響呢一局（下一局先生效）
+    this.playerLimit = GAME_DATA.config.max_players;
     this.running = true;
     this.tokensCollected = 0;
     this.charactersSoothed = 0;
@@ -682,7 +694,7 @@ class Session {
 
   // 人數越多門檻按比例提高（鼓勵協作），但唔會低過單人基礎門檻
   recalcRequired() {
-    const active = Math.max(Input.activePlayerCount(), 1);
+    const active = Math.max(Input.activePlayerCount(this.playerLimit), 1);
     this.requiredTokens = Math.max(this.baseRequired, Math.round(this.baseRequired * (0.6 + 0.2 * active)));
   }
 
