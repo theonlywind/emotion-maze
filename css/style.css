@@ -106,12 +106,7 @@ html, body {
   background: rgba(10, 14, 38, .7);
 }
 .pbar.offline { opacity: .4; }
-.pbar.breathing { border-color: var(--calm); animation: breathe 3s ease-in-out infinite; }
-
-@keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(143, 233, 255, .5); }
-  50% { box-shadow: 0 0 0 4px rgba(143, 233, 255, 0); }
-}
+.pbar.out { opacity: .35; }
 
 .pbar-name {
   font-family: "Courier New", monospace;
@@ -122,15 +117,13 @@ html, body {
 }
 .pbar-pips { display: flex; gap: 2px; }
 .pbar-pips i {
-  width: 7px;
-  height: 9px;
-  border-radius: 2px;
-  background: #202a58;
-  transition: background .25s;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1;
+  color: #2a3466;
+  transition: color .25s;
 }
-.pbar-pips i.on { background: var(--c); }
-/* 深呼吸回復緊：格仔轉做安撫色，同「跌格」嗰個狀態一眼分得開 */
-.pbar.breathing .pbar-pips i.on { background: var(--calm); }
+.pbar-pips i.on { color: var(--c); }
 
 /* ---------------- 畫面 ---------------- */
 
@@ -375,7 +368,8 @@ html, body {
   max-width: 88%;
 }
 
-.end-message { font-size: clamp(17px, 4.4vw, 24px); color: var(--warm); line-height: 1.6; max-width: 90%; }
+.end-message { font-size: clamp(17px, 4.4vw, 24px); color: var(--warm); line-height: 1.6; max-width: 90%; white-space: pre-line; }
+.end-message.game-over { color: #ff8a8a; }
 .end-scores { list-style: none; padding: 0; margin: 4px 0 0; font-size: 14px; line-height: 1.9; }
 
 .board-title { font-size: 20px; color: var(--calm); letter-spacing: 2px; }

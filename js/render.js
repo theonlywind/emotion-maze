@@ -130,22 +130,9 @@ const Render = {
   drawPlayer(p) {
     const ctx = this.ctx;
     ctx.save();
-    ctx.globalAlpha = !p.connected ? 0.4 : (p.isProtected() ? 0.55 : 1);
-
-    // 深呼吸時間：一個一脹一縮嘅光環，同「吸氣—呼氣」節奏對應，唔用受傷/死亡意象
-    if (p.breathing) {
-      const cfg = GAME_DATA.config;
-      const phase = 1 - p.breathTimer / cfg.breath_recover_seconds;
-      const r = TILE * (0.55 + Math.sin(phase * Math.PI * 2) * 0.35 + 0.35);
-      const grad = ctx.createRadialGradient(p.x, p.y, TILE * 0.2, p.x, p.y, r);
-      grad.addColorStop(0, 'rgba(150, 235, 255, 0)');
-      grad.addColorStop(0.7, 'rgba(150, 235, 255, 0.35)');
-      grad.addColorStop(1, 'rgba(150, 235, 255, 0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    // 出局：變灰；被掂到後嘅無敵時間：閃爍
+    ctx.globalAlpha = p.out ? 0.25 : !p.connected ? 0.4
+      : (p.isProtected() ? (Math.floor(p.animTime * 10) % 2 ? 0.35 : 0.9) : 1);
 
     const img = p.sprite();
     if (img && img.complete && img.naturalWidth) {

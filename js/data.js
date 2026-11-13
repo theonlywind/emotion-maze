@@ -147,17 +147,13 @@ window.GAME_DATA = {
     pre_info_line_index: 1,
     in_game: {
       time_low_warning_zh: "就快好喇，加油！",
-      gently_reset_tips_zh: [
-        "深呼吸，我哋再試一次",
-        "冇問題，慢慢嚟",
-        "休息一秒，再出發"
-      ],
-      // 安心值：唔係血量／生命。被情緒角色掂到會跌一格，之後會自己回滿，
-      // 跌到零都唔會死、唔會 Game Over、唔會扣分、唔會踢返起點——
-      // 零嗰刻淨係換嚟一段較長嘅深呼吸保護時間，然後回滿（GDD 2.6 唔懲罰原則）。
-      calm_label_zh: "安心值",
-      calm_recovered_zh: "你平復返喇，好好嘅",
-      breath_recover_zh: "一齊深呼吸…吸氣…呼氣…",
+      // 生命：被情緒角色掂到扣一條，唔會回復；扣到零就出局，
+      // 全部玩家出局就 Game Over（2026-11 由「唔死亡、唔懲罰」改成有輸有贏，
+      // 因為試玩後覺得完全冇挑戰）。{n} 會換成剩低幾多條命。
+      lives_label_zh: "生命",
+      life_lost_zh: "小心！仲有 {n} 條命",
+      life_last_zh: "最後一條命喇，加油！",
+      player_out_zh: "{p} 命用晒喇",
       controller_disconnected_zh: "手掣訊號中斷一陣",
       controller_disconnected_reassure_zh: "唔關你事，等一等佢",
       controller_reconnected_zh: "手掣返咗嚟，繼續啦！"
@@ -165,7 +161,9 @@ window.GAME_DATA = {
     session_end: {
       team_success_zh: "你哋一齊令呢個地方變得更加溫暖！",
       team_time_up_zh: "呢一round去到呢度，你哋已經好努力！",
-      individual_score_prefix_zh: "你嘅情緒探索分數："
+      individual_score_prefix_zh: "你嘅情緒探索分數：",
+      game_over_zh: "Game Over",
+      game_over_sub_zh: "命用晒喇，下次再嚟挑戰！"
     },
     high_score_board: {
       title_zh: "今日十大情緒探索家",
@@ -189,9 +187,8 @@ window.GAME_DATA = {
     session_duration_seconds: 120,
     max_players: 4,
 
-    // 安心值參數（見 uiText.in_game.calm_label_zh 嘅說明）
-    calm_max: 4,                    // 幾多格
-    calm_recover_seconds: 9,        // 每隔幾多秒自己回一格
-    breath_recover_seconds: 3       // 跌到零嗰陣嘅深呼吸時間，完咗回滿
+    // 生命參數（見 uiText.in_game.lives_label_zh 嘅說明）
+    lives: 3,                       // 每位玩家幾多條命，唔會回復
+    hit_protect_seconds: 2          // 被掂到（仲有命）之後嘅無敵時間，避免連環被掂
   }
 };

@@ -96,6 +96,7 @@ const Sfx = {
   calmSuccess() { this._play([[784, 0, 0.15], [659, 0.12, 0.15], [523, 0.24, 0.35]], { type: 'sine', gain: 0.1 }); },
   playerCaught() { this._play([[330, 0, 0.18], [262, 0.14, 0.25]], { type: 'sine', gain: 0.07 }); },
   timeWarning() { this._play([[587, 0, 0.2], [587, 0.28, 0.3]], { type: 'sine', gain: 0.07 }); },
+  gameOver() { this._play([[392, 0, 0.25], [330, 0.22, 0.25], [262, 0.44, 0.5]], { type: 'sine', gain: 0.08 }); },
   levelClear() { this._play([[523, 0, 0.14], [659, 0.13, 0.14], [784, 0.26, 0.14], [1047, 0.39, 0.4]], { gain: 0.1 }); },
   uiConfirm() { this._play([[660, 0, 0.07]], { gain: 0.05 }); }
 };
@@ -421,24 +422,20 @@ class Player extends GridMover {
     this.slot = slot;
     this.queued = { x: 0, y: 0 };
     this.connected = true;
-    this.gentlyResetTimer = 0;   // > 0 代表喺溫和重置嘅保護窗口
+    this.gentlyResetTimer = 0;   // > 0 代表被掂到之後嘅短暫無敵時間
     this.animTime = 0;
     this.nearEmotion = false;    // GDD 9.1.4a：貼近情緒角色時鎖住大張口幀
 
-    // 安心值：被情緒角色掂到會跌一格，唔郁佢會自己回，跌到零都唔會死
-    this.calm = GAME_DATA.config.calm_max;
-    this.calmRecoverTimer = GAME_DATA.config.calm_recover_seconds;
-    this.breathing = false;
-    this.breathTimer = 0;
-    this.justRecovered = 0;      // > 0 代表啱啱回滿，俾 UI 出一句肯定說話
+    // 生命：被未進入安撫模式嘅情緒角色掂到扣一條，唔會自動回復；
+    // 扣到零就出局（out），畫面變灰、唔再郁。全部玩家出局 = Game Over。
+    this.lives = GAME_DATA.config.lives;
+    this.out = false;
   }
 
   update(dt) {
-    if (!this.connected) return;
+    if (!this.connected || this.out) return;
     this.animTime += dt;
     if (this.gentlyResetTimer > 0) this.gentlyResetTimer -= dt;
-    if (this.justRecovered > 0) this.justRecovered -= dt;
-    this.updateCalm(dt);
 
     const v = Input.moveVector(this.slot);
     if (v.x || v.y) {
@@ -464,42 +461,14 @@ class Player extends GridMover {
 
   isProtected() { return this.gentlyResetTimer > 0; }
 
-  // 安心值自動回復；跌到零嗰陣係一段深呼吸時間，完咗直接回滿，冇任何懲罰
-  updateCalm(dt) {
-    const cfg = GAME_DATA.config;
-    if (this.breathing) {
-      this.breathTimer -= dt;
-      if (this.breathTimer <= 0) {
-        this.breathing = false;
-        this.calm = cfg.calm_max;
-        this.calmRecoverTimer = cfg.calm_recover_seconds;
-        this.justRecovered = 2.0;
-      }
-      return;
-    }
-    if (this.calm >= cfg.calm_max) return;
-    this.calmRecoverTimer -= dt;
-    if (this.calmRecoverTimer <= 0) {
-      this.calm++;
-      this.calmRecoverTimer = cfg.calm_recover_seconds;
-      if (this.calm >= cfg.calm_max) this.justRecovered = 2.0;
-    }
-  }
-
-  // 被未進入安撫模式嘅情緒角色掂到：唔死亡、唔扣命、唔踢返起點，
-  // 只係安心值跌一格 + 一段短嘅保護時間。跌到零就轉做較長嘅深呼吸，完咗回滿。
-  gentlyReset() {
-    if (this.isProtected()) return false;
-    const cfg = GAME_DATA.config;
-    this.calm = Math.max(0, this.calm - 1);
-    this.calmRecoverTimer = cfg.calm_recover_seconds;
-    if (this.calm === 0) {
-      this.breathing = true;
-      this.breathTimer = cfg.breath_recover_seconds;
-      this.gentlyResetTimer = cfg.breath_recover_seconds;   // 保護窗口跟住拉長，唔會連環被追到
-    } else {
-      this.gentlyResetTimer = 1.5;
-    }
+  // 被未進入安撫模式嘅情緒角色掂到：扣一條命，唔會回復。
+  // 扣完仍然有命就有一段短無敵時間（避免連環被掂）；扣到零就出局。
+  // 回傳 true = 今次真係扣咗命。
+  hit() {
+    if (this.out || this.isProtected()) return false;
+    this.lives = Math.max(0, this.lives - 1);
+    if (this.lives === 0) this.out = true;
+    else this.gentlyResetTimer = GAME_DATA.config.hit_protect_seconds;
     return true;
   }
 
@@ -689,6 +658,7 @@ class Session {
     this.requiredTokens = this.baseRequired;
     this.requiredSoothed = GAME_DATA.characters.length;
     this.teamWon = false;
+    this.gameOver = false;   // true = 全部玩家命用晒而結束（唔係時間到）
     this.recalcRequired();
   }
 
@@ -726,10 +696,11 @@ class Session {
     }
   }
 
-  end(teamWon) {
+  end(teamWon, gameOver = false) {
     if (!this.running) return;
     this.running = false;
     this.teamWon = teamWon;
+    this.gameOver = gameOver;
     if (this.onCompleted) this.onCompleted(teamWon);
   }
 

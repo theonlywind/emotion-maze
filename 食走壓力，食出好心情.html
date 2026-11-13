@@ -113,12 +113,7 @@ html, body {
   background: rgba(10, 14, 38, .7);
 }
 .pbar.offline { opacity: .4; }
-.pbar.breathing { border-color: var(--calm); animation: breathe 3s ease-in-out infinite; }
-
-@keyframes breathe {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(143, 233, 255, .5); }
-  50% { box-shadow: 0 0 0 4px rgba(143, 233, 255, 0); }
-}
+.pbar.out { opacity: .35; }
 
 .pbar-name {
   font-family: "Courier New", monospace;
@@ -129,15 +124,13 @@ html, body {
 }
 .pbar-pips { display: flex; gap: 2px; }
 .pbar-pips i {
-  width: 7px;
-  height: 9px;
-  border-radius: 2px;
-  background: #202a58;
-  transition: background .25s;
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1;
+  color: #2a3466;
+  transition: color .25s;
 }
-.pbar-pips i.on { background: var(--c); }
-/* 深呼吸回復緊：格仔轉做安撫色，同「跌格」嗰個狀態一眼分得開 */
-.pbar.breathing .pbar-pips i.on { background: var(--calm); }
+.pbar-pips i.on { color: var(--c); }
 
 /* ---------------- 畫面 ---------------- */
 
@@ -382,7 +375,8 @@ html, body {
   max-width: 88%;
 }
 
-.end-message { font-size: clamp(17px, 4.4vw, 24px); color: var(--warm); line-height: 1.6; max-width: 90%; }
+.end-message { font-size: clamp(17px, 4.4vw, 24px); color: var(--warm); line-height: 1.6; max-width: 90%; white-space: pre-line; }
+.end-message.game-over { color: #ff8a8a; }
 .end-scores { list-style: none; padding: 0; margin: 4px 0 0; font-size: 14px; line-height: 1.9; }
 
 .board-title { font-size: 20px; color: var(--calm); letter-spacing: 2px; }
@@ -755,17 +749,13 @@ window.GAME_DATA = {
     pre_info_line_index: 1,
     in_game: {
       time_low_warning_zh: "就快好喇，加油！",
-      gently_reset_tips_zh: [
-        "深呼吸，我哋再試一次",
-        "冇問題，慢慢嚟",
-        "休息一秒，再出發"
-      ],
-      // 安心值：唔係血量／生命。被情緒角色掂到會跌一格，之後會自己回滿，
-      // 跌到零都唔會死、唔會 Game Over、唔會扣分、唔會踢返起點——
-      // 零嗰刻淨係換嚟一段較長嘅深呼吸保護時間，然後回滿（GDD 2.6 唔懲罰原則）。
-      calm_label_zh: "安心值",
-      calm_recovered_zh: "你平復返喇，好好嘅",
-      breath_recover_zh: "一齊深呼吸…吸氣…呼氣…",
+      // 生命：被情緒角色掂到扣一條，唔會回復；扣到零就出局，
+      // 全部玩家出局就 Game Over（2026-11 由「唔死亡、唔懲罰」改成有輸有贏，
+      // 因為試玩後覺得完全冇挑戰）。{n} 會換成剩低幾多條命。
+      lives_label_zh: "生命",
+      life_lost_zh: "小心！仲有 {n} 條命",
+      life_last_zh: "最後一條命喇，加油！",
+      player_out_zh: "{p} 命用晒喇",
       controller_disconnected_zh: "手掣訊號中斷一陣",
       controller_disconnected_reassure_zh: "唔關你事，等一等佢",
       controller_reconnected_zh: "手掣返咗嚟，繼續啦！"
@@ -773,7 +763,9 @@ window.GAME_DATA = {
     session_end: {
       team_success_zh: "你哋一齊令呢個地方變得更加溫暖！",
       team_time_up_zh: "呢一round去到呢度，你哋已經好努力！",
-      individual_score_prefix_zh: "你嘅情緒探索分數："
+      individual_score_prefix_zh: "你嘅情緒探索分數：",
+      game_over_zh: "Game Over",
+      game_over_sub_zh: "命用晒喇，下次再嚟挑戰！"
     },
     high_score_board: {
       title_zh: "今日十大情緒探索家",
@@ -797,10 +789,9 @@ window.GAME_DATA = {
     session_duration_seconds: 120,
     max_players: 4,
 
-    // 安心值參數（見 uiText.in_game.calm_label_zh 嘅說明）
-    calm_max: 4,                    // 幾多格
-    calm_recover_seconds: 9,        // 每隔幾多秒自己回一格
-    breath_recover_seconds: 3       // 跌到零嗰陣嘅深呼吸時間，完咗回滿
+    // 生命參數（見 uiText.in_game.lives_label_zh 嘅說明）
+    lives: 3,                       // 每位玩家幾多條命，唔會回復
+    hit_protect_seconds: 2          // 被掂到（仲有命）之後嘅無敵時間，避免連環被掂
   }
 };
 
@@ -903,6 +894,7 @@ const Sfx = {
   calmSuccess() { this._play([[784, 0, 0.15], [659, 0.12, 0.15], [523, 0.24, 0.35]], { type: 'sine', gain: 0.1 }); },
   playerCaught() { this._play([[330, 0, 0.18], [262, 0.14, 0.25]], { type: 'sine', gain: 0.07 }); },
   timeWarning() { this._play([[587, 0, 0.2], [587, 0.28, 0.3]], { type: 'sine', gain: 0.07 }); },
+  gameOver() { this._play([[392, 0, 0.25], [330, 0.22, 0.25], [262, 0.44, 0.5]], { type: 'sine', gain: 0.08 }); },
   levelClear() { this._play([[523, 0, 0.14], [659, 0.13, 0.14], [784, 0.26, 0.14], [1047, 0.39, 0.4]], { gain: 0.1 }); },
   uiConfirm() { this._play([[660, 0, 0.07]], { gain: 0.05 }); }
 };
@@ -1228,24 +1220,20 @@ class Player extends GridMover {
     this.slot = slot;
     this.queued = { x: 0, y: 0 };
     this.connected = true;
-    this.gentlyResetTimer = 0;   // > 0 代表喺溫和重置嘅保護窗口
+    this.gentlyResetTimer = 0;   // > 0 代表被掂到之後嘅短暫無敵時間
     this.animTime = 0;
     this.nearEmotion = false;    // GDD 9.1.4a：貼近情緒角色時鎖住大張口幀
 
-    // 安心值：被情緒角色掂到會跌一格，唔郁佢會自己回，跌到零都唔會死
-    this.calm = GAME_DATA.config.calm_max;
-    this.calmRecoverTimer = GAME_DATA.config.calm_recover_seconds;
-    this.breathing = false;
-    this.breathTimer = 0;
-    this.justRecovered = 0;      // > 0 代表啱啱回滿，俾 UI 出一句肯定說話
+    // 生命：被未進入安撫模式嘅情緒角色掂到扣一條，唔會自動回復；
+    // 扣到零就出局（out），畫面變灰、唔再郁。全部玩家出局 = Game Over。
+    this.lives = GAME_DATA.config.lives;
+    this.out = false;
   }
 
   update(dt) {
-    if (!this.connected) return;
+    if (!this.connected || this.out) return;
     this.animTime += dt;
     if (this.gentlyResetTimer > 0) this.gentlyResetTimer -= dt;
-    if (this.justRecovered > 0) this.justRecovered -= dt;
-    this.updateCalm(dt);
 
     const v = Input.moveVector(this.slot);
     if (v.x || v.y) {
@@ -1271,42 +1259,14 @@ class Player extends GridMover {
 
   isProtected() { return this.gentlyResetTimer > 0; }
 
-  // 安心值自動回復；跌到零嗰陣係一段深呼吸時間，完咗直接回滿，冇任何懲罰
-  updateCalm(dt) {
-    const cfg = GAME_DATA.config;
-    if (this.breathing) {
-      this.breathTimer -= dt;
-      if (this.breathTimer <= 0) {
-        this.breathing = false;
-        this.calm = cfg.calm_max;
-        this.calmRecoverTimer = cfg.calm_recover_seconds;
-        this.justRecovered = 2.0;
-      }
-      return;
-    }
-    if (this.calm >= cfg.calm_max) return;
-    this.calmRecoverTimer -= dt;
-    if (this.calmRecoverTimer <= 0) {
-      this.calm++;
-      this.calmRecoverTimer = cfg.calm_recover_seconds;
-      if (this.calm >= cfg.calm_max) this.justRecovered = 2.0;
-    }
-  }
-
-  // 被未進入安撫模式嘅情緒角色掂到：唔死亡、唔扣命、唔踢返起點，
-  // 只係安心值跌一格 + 一段短嘅保護時間。跌到零就轉做較長嘅深呼吸，完咗回滿。
-  gentlyReset() {
-    if (this.isProtected()) return false;
-    const cfg = GAME_DATA.config;
-    this.calm = Math.max(0, this.calm - 1);
-    this.calmRecoverTimer = cfg.calm_recover_seconds;
-    if (this.calm === 0) {
-      this.breathing = true;
-      this.breathTimer = cfg.breath_recover_seconds;
-      this.gentlyResetTimer = cfg.breath_recover_seconds;   // 保護窗口跟住拉長，唔會連環被追到
-    } else {
-      this.gentlyResetTimer = 1.5;
-    }
+  // 被未進入安撫模式嘅情緒角色掂到：扣一條命，唔會回復。
+  // 扣完仍然有命就有一段短無敵時間（避免連環被掂）；扣到零就出局。
+  // 回傳 true = 今次真係扣咗命。
+  hit() {
+    if (this.out || this.isProtected()) return false;
+    this.lives = Math.max(0, this.lives - 1);
+    if (this.lives === 0) this.out = true;
+    else this.gentlyResetTimer = GAME_DATA.config.hit_protect_seconds;
     return true;
   }
 
@@ -1496,6 +1456,7 @@ class Session {
     this.requiredTokens = this.baseRequired;
     this.requiredSoothed = GAME_DATA.characters.length;
     this.teamWon = false;
+    this.gameOver = false;   // true = 全部玩家命用晒而結束（唔係時間到）
     this.recalcRequired();
   }
 
@@ -1533,10 +1494,11 @@ class Session {
     }
   }
 
-  end(teamWon) {
+  end(teamWon, gameOver = false) {
     if (!this.running) return;
     this.running = false;
     this.teamWon = teamWon;
+    this.gameOver = gameOver;
     if (this.onCompleted) this.onCompleted(teamWon);
   }
 
@@ -1738,22 +1700,9 @@ const Render = {
   drawPlayer(p) {
     const ctx = this.ctx;
     ctx.save();
-    ctx.globalAlpha = !p.connected ? 0.4 : (p.isProtected() ? 0.55 : 1);
-
-    // 深呼吸時間：一個一脹一縮嘅光環，同「吸氣—呼氣」節奏對應，唔用受傷/死亡意象
-    if (p.breathing) {
-      const cfg = GAME_DATA.config;
-      const phase = 1 - p.breathTimer / cfg.breath_recover_seconds;
-      const r = TILE * (0.55 + Math.sin(phase * Math.PI * 2) * 0.35 + 0.35);
-      const grad = ctx.createRadialGradient(p.x, p.y, TILE * 0.2, p.x, p.y, r);
-      grad.addColorStop(0, 'rgba(150, 235, 255, 0)');
-      grad.addColorStop(0.7, 'rgba(150, 235, 255, 0.35)');
-      grad.addColorStop(1, 'rgba(150, 235, 255, 0)');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    // 出局：變灰；被掂到後嘅無敵時間：閃爍
+    ctx.globalAlpha = p.out ? 0.25 : !p.connected ? 0.4
+      : (p.isProtected() ? (Math.floor(p.animTime * 10) % 2 ? 0.35 : 0.9) : 1);
 
     const img = p.sprite();
     if (img && img.complete && img.naturalWidth) {
@@ -2041,32 +1990,24 @@ const UI = {
     $('tokens').textContent = `${session.tokensCollected}/${session.requiredTokens}`;
   },
 
-  // 每位玩家嘅即時安心值。特登唔喺呢度顯示個人分數——GDD 4.3 唔准喺局內
+  // 每位玩家嘅剩餘生命。特登唔喺呢度顯示個人分數——GDD 4.3 唔准喺局內
   // 喺同伴面前逐個比較分數，個人成績留返去全日高分榜。
   renderPlayerBars(players) {
     const box = $('playerBars');
-    const max = GAME_DATA.config.calm_max;
-    // 深呼吸期間唔顯示「零格」（會俾人睇成死咗），而係跟住呼吸時間逐格填返，
-    // 讀落係「回復緊」。呢個亦係 signature 嘅一部分，格數變先重砌 DOM。
-    const litOf = (p) => {
-      if (!p.breathing) return p.calm;
-      const prog = 1 - p.breathTimer / GAME_DATA.config.breath_recover_seconds;
-      return Math.max(1, Math.ceil(prog * max));
-    };
+    const max = GAME_DATA.config.lives;
     const sig = players.map((p) =>
-      `${p.slot}:${litOf(p)}:${p.connected ? 1 : 0}:${p.breathing ? 1 : 0}`).join('|');
+      `${p.slot}:${p.lives}:${p.connected ? 1 : 0}:${p.out ? 1 : 0}`).join('|');
     if (sig === this._playerSig) return;
     this._playerSig = sig;
 
     box.innerHTML = '';
     for (const p of players) {
-      const lit = litOf(p);
       const el = document.createElement('div');
-      el.className = 'pbar' + (p.connected ? '' : ' offline') + (p.breathing ? ' breathing' : '');
+      el.className = 'pbar' + (p.connected ? '' : ' offline') + (p.out ? ' out' : '');
       el.style.setProperty('--c', PLAYER_COLORS[p.slot]);
-      const pips = Array.from({ length: max }, (_, i) =>
-        `<i class="${i < lit ? 'on' : ''}"></i>`).join('');
-      el.innerHTML = `<span class="pbar-name">P${p.slot + 1}</span><span class="pbar-pips">${pips}</span>`;
+      const hearts = Array.from({ length: max }, (_, i) =>
+        `<i class="${i < p.lives ? 'on' : ''}">♥</i>`).join('');
+      el.innerHTML = `<span class="pbar-name">P${p.slot + 1}</span><span class="pbar-pips">${hearts}</span>`;
       box.appendChild(el);
     }
   },
@@ -2080,11 +2021,21 @@ const UI = {
 
   hideTimeWarning() { $('timeWarning').classList.remove('visible'); },
 
-  // 玩家被追捕角色掂到：唔講失敗，淨係俾一個溫和情緒調節小貼士
+  // 玩家被情緒角色掂到扣咗命：講明仲剩幾多條，最後一條同出局有各自嘅字
+  showLifeLost(player, playerCount) {
+    const T = GAME_DATA.uiText.in_game;
+    const who = `P${player.slot + 1}`;
+    let text;
+    if (player.out) text = T.player_out_zh.replace('{p}', who);
+    else if (player.lives === 1) text = T.life_last_zh;
+    else text = T.life_lost_zh.replace('{n}', player.lives);
+    if (!player.out && playerCount > 1) text = `${who}　${text}`;
+    this.showGentleTip(text, 2000);
+  },
+
   showGentleTip(text, seconds = 2000) {
-    const tips = GAME_DATA.uiText.in_game.gently_reset_tips_zh;
     const el = $('gentleTip');
-    el.textContent = text || tips[Math.floor(Math.random() * tips.length)];
+    el.textContent = text;
     el.classList.add('visible');
     clearTimeout(this._tipTimer);
     this._tipTimer = setTimeout(() => el.classList.remove('visible'), seconds);
@@ -2105,7 +2056,10 @@ const UI = {
   // 單人局冇同伴比較風險，照顯示佢自己個分數。
   setEndMessage(session, playerCount) {
     const T = GAME_DATA.uiText.session_end;
-    $('endMessage').textContent = session.teamWon ? T.team_success_zh : T.team_time_up_zh;
+    $('endMessage').textContent = session.gameOver
+      ? `${T.game_over_zh}\n${T.game_over_sub_zh}`
+      : (session.teamWon ? T.team_success_zh : T.team_time_up_zh);
+    $('endMessage').classList.toggle('game-over', !!session.gameOver);
     const list = $('endScores');
     list.innerHTML = '';
     const li = document.createElement('li');
@@ -2336,30 +2290,20 @@ class Game {
     this.time += dt;
     this.session.update(dt);
     for (const p of this.players) p.update(dt);
-    for (const c of this.characters) c.update(dt, this.players.filter((p) => p.connected));
+    for (const c of this.characters) c.update(dt, this.players.filter((p) => p.connected && !p.out));
 
     this.collectTokens();
     this.resolveContacts();
     this.updateChompRule();
-    this.announceRecoveries();
     Render.updateBubbles(dt);
-  }
 
-  // 安心值回滿嗰陣講一句肯定說話，令「平復返」呢件事有正面回饋，唔止係一格燈著返
-  announceRecoveries() {
-    for (const p of this.players) {
-      if (p.justRecovered > 0 && !p._recoveryAnnounced) {
-        p._recoveryAnnounced = true;
-        UI.showGentleTip(GAME_DATA.uiText.in_game.calm_recovered_zh, 1800);
-      } else if (p.justRecovered <= 0) {
-        p._recoveryAnnounced = false;
-      }
-    }
+    // 全部玩家命用晒 = Game Over
+    if (this.players.every((p) => p.out)) this.session.end(false, true);
   }
 
   collectTokens() {
     for (const p of this.players) {
-      if (!p.connected) continue;
+      if (!p.connected || p.out) continue;
       const g = p.grid;
       const key = `${g.gx},${g.gy}`;
       if (Maze.tokens.delete(key)) {
@@ -2383,7 +2327,7 @@ class Game {
     const r = this.catchRadius();
     for (const c of this.characters) {
       for (const p of this.players) {
-        if (!p.connected) continue;
+        if (!p.connected || p.out) continue;
         if (Math.hypot(c.x - p.x, c.y - p.y) > r) continue;
 
         if (c.isVulnerable) {
@@ -2391,10 +2335,8 @@ class Game {
           Render.addBubble(c.x, c.y, c.caughtLine || GAME_DATA.sharedRules.respawn_message_zh);
           Sfx.calmSuccess();
           c.enter(CharState.CAUGHT);
-        } else if (c.isActiveChaser && p.gentlyReset()) {
-          // 安心值跌到零：唔係死亡，係一段深呼吸時間，玩家照樣郁得，完咗安心值回滿
-          UI.showGentleTip(p.breathing ? GAME_DATA.uiText.in_game.breath_recover_zh : null,
-            p.breathing ? GAME_DATA.config.breath_recover_seconds * 1000 : 2000);
+        } else if (c.isActiveChaser && p.hit()) {
+          UI.showLifeLost(p, this.players.length);
           Sfx.playerCaught();
         }
       }
@@ -2497,10 +2439,11 @@ const App = {
         break;
 
       case Flow.PLAYING:
-        UI._playerSig = null;   // 迫 HUD 重新砌返玩家安心值格
+        UI._playerSig = null;   // 迫 HUD 重新砌返玩家生命格
         this.game = new Game();
         this.game.session.onCompleted = (won) => {
           if (won) Sfx.levelClear();
+          else if (this.game.session.gameOver) Sfx.gameOver();
           this.enter(Flow.END);
         };
         UI.showPanel(null);

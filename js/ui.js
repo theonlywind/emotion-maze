@@ -189,32 +189,24 @@ const UI = {
     $('tokens').textContent = `${session.tokensCollected}/${session.requiredTokens}`;
   },
 
-  // 每位玩家嘅即時安心值。特登唔喺呢度顯示個人分數——GDD 4.3 唔准喺局內
+  // 每位玩家嘅剩餘生命。特登唔喺呢度顯示個人分數——GDD 4.3 唔准喺局內
   // 喺同伴面前逐個比較分數，個人成績留返去全日高分榜。
   renderPlayerBars(players) {
     const box = $('playerBars');
-    const max = GAME_DATA.config.calm_max;
-    // 深呼吸期間唔顯示「零格」（會俾人睇成死咗），而係跟住呼吸時間逐格填返，
-    // 讀落係「回復緊」。呢個亦係 signature 嘅一部分，格數變先重砌 DOM。
-    const litOf = (p) => {
-      if (!p.breathing) return p.calm;
-      const prog = 1 - p.breathTimer / GAME_DATA.config.breath_recover_seconds;
-      return Math.max(1, Math.ceil(prog * max));
-    };
+    const max = GAME_DATA.config.lives;
     const sig = players.map((p) =>
-      `${p.slot}:${litOf(p)}:${p.connected ? 1 : 0}:${p.breathing ? 1 : 0}`).join('|');
+      `${p.slot}:${p.lives}:${p.connected ? 1 : 0}:${p.out ? 1 : 0}`).join('|');
     if (sig === this._playerSig) return;
     this._playerSig = sig;
 
     box.innerHTML = '';
     for (const p of players) {
-      const lit = litOf(p);
       const el = document.createElement('div');
-      el.className = 'pbar' + (p.connected ? '' : ' offline') + (p.breathing ? ' breathing' : '');
+      el.className = 'pbar' + (p.connected ? '' : ' offline') + (p.out ? ' out' : '');
       el.style.setProperty('--c', PLAYER_COLORS[p.slot]);
-      const pips = Array.from({ length: max }, (_, i) =>
-        `<i class="${i < lit ? 'on' : ''}"></i>`).join('');
-      el.innerHTML = `<span class="pbar-name">P${p.slot + 1}</span><span class="pbar-pips">${pips}</span>`;
+      const hearts = Array.from({ length: max }, (_, i) =>
+        `<i class="${i < p.lives ? 'on' : ''}">♥</i>`).join('');
+      el.innerHTML = `<span class="pbar-name">P${p.slot + 1}</span><span class="pbar-pips">${hearts}</span>`;
       box.appendChild(el);
     }
   },
@@ -228,11 +220,21 @@ const UI = {
 
   hideTimeWarning() { $('timeWarning').classList.remove('visible'); },
 
-  // 玩家被追捕角色掂到：唔講失敗，淨係俾一個溫和情緒調節小貼士
+  // 玩家被情緒角色掂到扣咗命：講明仲剩幾多條，最後一條同出局有各自嘅字
+  showLifeLost(player, playerCount) {
+    const T = GAME_DATA.uiText.in_game;
+    const who = `P${player.slot + 1}`;
+    let text;
+    if (player.out) text = T.player_out_zh.replace('{p}', who);
+    else if (player.lives === 1) text = T.life_last_zh;
+    else text = T.life_lost_zh.replace('{n}', player.lives);
+    if (!player.out && playerCount > 1) text = `${who}　${text}`;
+    this.showGentleTip(text, 2000);
+  },
+
   showGentleTip(text, seconds = 2000) {
-    const tips = GAME_DATA.uiText.in_game.gently_reset_tips_zh;
     const el = $('gentleTip');
-    el.textContent = text || tips[Math.floor(Math.random() * tips.length)];
+    el.textContent = text;
     el.classList.add('visible');
     clearTimeout(this._tipTimer);
     this._tipTimer = setTimeout(() => el.classList.remove('visible'), seconds);
@@ -253,7 +255,10 @@ const UI = {
   // 單人局冇同伴比較風險，照顯示佢自己個分數。
   setEndMessage(session, playerCount) {
     const T = GAME_DATA.uiText.session_end;
-    $('endMessage').textContent = session.teamWon ? T.team_success_zh : T.team_time_up_zh;
+    $('endMessage').textContent = session.gameOver
+      ? `${T.game_over_zh}\n${T.game_over_sub_zh}`
+      : (session.teamWon ? T.team_success_zh : T.team_time_up_zh);
+    $('endMessage').classList.toggle('game-over', !!session.gameOver);
     const list = $('endScores');
     list.innerHTML = '';
     const li = document.createElement('li');
