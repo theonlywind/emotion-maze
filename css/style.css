@@ -551,6 +551,19 @@ html, body {
 #staffMenu button:hover { background: #26308f; }
 #staffMenu button.primary { background: #2f57d8; border-color: #4c74ff; }
 
+.staff-pads {
+  margin: 14px 0 0;
+  padding: 8px 10px;
+  max-height: 120px;
+  overflow: auto;
+  border: 1px solid #2a3466;
+  border-radius: 6px;
+  background: rgba(5, 8, 24, .8);
+  color: var(--calm);
+  font: 11px/1.5 "Courier New", monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
 .staff-hint { font-size: 11px; opacity: .55; margin: 14px 0 0; line-height: 1.6; }
 
 /* ---------------- 載入 ---------------- */
