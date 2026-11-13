@@ -29,9 +29,18 @@ html, body {
   padding: 8px;
 }
 
-/* canvas 672x408（28x17 格 × 24px，比例 1.647），加上 HUD 高度之後按視窗等比縮放 */
+/* [試驗] 文字同介面跟住畫面大細放大（--ui-hud / --ui-panel 由 Layout.fit() 設定）。
+   zoom 會連埋字、間距、圖一齊放大，排版比例保持同以前一樣。
+   還原：刪走呢段同 ui.js 嘅 Layout，#frame 闊度改返 main 嘅版本。 */
+#hud { zoom: var(--ui-hud, 1); }
+.panel > *, .floating, .goal-hint { zoom: var(--ui-panel, 1); }
+.goal-hint { width: max-content; }   /* 放大之後唔好因為 left:50% 而被逼斷行 */
+.staff-card { zoom: var(--ui-panel, 1); }
+
+/* [試驗] 闊度由 ui.js 嘅 Layout.fit() 按視窗計（量埋 HUD 實際高度），用盡成個視窗。
+   呢度只係 JS 未行之前嘅後備值。 */
 #frame {
-  width: min(96vw, calc((96vh - 110px) * 1.647));
+  width: min(98vw, calc((98vh - 110px) * 1.88));
   container-type: inline-size;
   display: flex;
   flex-direction: column;

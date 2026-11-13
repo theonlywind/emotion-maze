@@ -155,6 +155,8 @@ const App = {
     Maze.reset();
     Render.init($('game'));
     UI.init();
+    Layout.fit();
+    addEventListener('resize', () => Layout.fit());
     StaffMenu.init();
     HighScores.load();
     UI.renderBoard();

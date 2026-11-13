@@ -3,6 +3,30 @@
 
 const $ = (id) => document.getElementById(id);
 
+// [試驗] 用盡成個視窗：計 #frame 闊度，同埋按畫面大細放大 HUD／面板文字。
+// 以前排版大約以 1000px 闊為準，所以用「實際闊度 ÷ 1000」做放大倍數。
+const Layout = {
+  BASE: 1000,
+  HUD_BOOST: 1.0,     // HUD 跟畫面等比例放大
+  PANEL_BOOST: 1.25,  // 面板字再大多 25%，遠啲都睇到
+  fit() {
+    const frame = $('frame'), hud = $('hud');
+    if (!frame || !hud) return;
+    const vw = innerWidth - 16, vh = innerHeight - 16, gap = 6, border = 4;
+    const aspect = Maze.width / Maze.height;
+    const root = document.documentElement.style;
+    let w = vw;
+    for (let i = 0; i < 3; i++) {   // HUD 高度會跟放大倍數變，行幾次就收斂
+      root.setProperty('--ui-hud', Math.max(1, (w / this.BASE) * this.HUD_BOOST).toFixed(3));
+      root.setProperty('--ui-panel', Math.max(1, (w / this.BASE) * this.PANEL_BOOST).toFixed(3));
+      frame.style.width = w + 'px';
+      const hudH = hud.getBoundingClientRect().height;
+      w = Math.floor(Math.min(vw, (vh - hudH - gap - border) * aspect + border));
+    }
+    frame.style.width = w + 'px';
+  }
+};
+
 const UI = {
   init() {
     const T = GAME_DATA.uiText;
