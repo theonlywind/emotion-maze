@@ -316,6 +316,7 @@ const App = {
     this.entryScore = score;
     this.entryLetters = Array(NAME_LENGTH).fill('A');
     this.entryCursor = 0;
+    this._entryHold = { dir: null, t: 0 };
     $('entryScore').textContent = String(score);
     UI.setEntryPlayer(slot, this.game ? this.game.players.length : 1);
     UI.renderEntry(this.entryLetters, this.entryCursor);
@@ -363,21 +364,43 @@ const App = {
       }
 
       case Flow.HIGHSCORE:
-        this.updateEntry(confirm);
+        this.updateEntry(confirm, dt);
         break;
     }
 
     this.draw(dt);
   },
 
-  // 手掣操作：上下揀字元、左右換位、A 掣逐格推進，去到最後一格再撳就落實
-  updateEntry(confirm) {
-    const nav = this.navEdge();
+  // 入名只用手掣都完成得：
+  //   上下 = 揀字（撳住會連續轉）、左右 = 換位、A = 下一格（最後一格落實）、
+  //   B = 返上一格、Start = 直接落實。
+  // 多人局只認得獎嗰位玩家嘅手掣，其他人亂撳唔會郁到佢個名；
+  // 得獎玩家嘅手掣唔喺度（斷咗線）就當任何手掣／鍵盤都用得。
+  updateEntry(confirm, dt) {
+    const winnerPad = Input.isSlotConnected(this.entrySlot);
+    const slots = winnerPad ? [this.entrySlot] : [0, 1, 2, 3].filter((s) => Input.isSlotConnected(s));
+    const mine = !confirm ? false
+      : (Input.confirmOther || !winnerPad || Input.confirmSlots.includes(this.entrySlot));
+
+    const nav = this.entryNav(slots, dt);
     if (nav.up) this.shiftLetter(1);
     if (nav.down) this.shiftLetter(-1);
     if (nav.left) { this.entryCursor = Math.max(0, this.entryCursor - 1); UI.renderEntry(this.entryLetters, this.entryCursor); }
     if (nav.right) { this.entryCursor = Math.min(NAME_LENGTH - 1, this.entryCursor + 1); UI.renderEntry(this.entryLetters, this.entryCursor); }
-    if (confirm) {
+
+    let back = false, start = false;
+    for (const s of slots) {
+      if (Input.padButtonEdge(s, 1)) back = true;
+      if (Input.padButtonEdge(s, 9)) start = true;
+    }
+    if (back) {
+      this.entryCursor = Math.max(0, this.entryCursor - 1);
+      UI.renderEntry(this.entryLetters, this.entryCursor);
+      Sfx.uiConfirm();
+    }
+    if (start) { this.submitEntry(); return; }
+
+    if (mine) {
       if (this.entryCursor < NAME_LENGTH - 1) {
         this.entryCursor++;
         UI.renderEntry(this.entryLetters, this.entryCursor);
@@ -386,6 +409,37 @@ const App = {
         this.submitEntry();
       }
     }
+  },
+
+  // 入名專用方向輸入：指定手掣 + 鍵盤方向鍵（唔用 WASD，因為會同打字撞字母），
+  // 撳住 0.4 秒後每 0.08 秒重複一次，由 A 揀去 Z 唔使撳十幾下
+  _entryHold: { dir: null, t: 0 },
+  entryNav(slots, dt) {
+    const k = Input.keys;
+    const raw = {
+      up: !!k['arrowup'], down: !!k['arrowdown'],
+      left: !!k['arrowleft'], right: !!k['arrowright']
+    };
+    for (const slot of slots) {
+      const v = Input.moveVector(slot);
+      if (v.y < -0.5) raw.up = true;
+      if (v.y > 0.5) raw.down = true;
+      if (v.x < -0.5) raw.left = true;
+      if (v.x > 0.5) raw.right = true;
+    }
+    const out = { up: false, down: false, left: false, right: false };
+    // 同時撳幾個方向：上下優先（揀字最常用）
+    const dir = raw.up ? 'up' : raw.down ? 'down' : raw.left ? 'left' : raw.right ? 'right' : null;
+    const h = this._entryHold;
+    if (dir !== h.dir) {
+      h.dir = dir;
+      h.t = 0.4;
+      if (dir) out[dir] = true;
+    } else if (dir) {
+      h.t -= dt;
+      if (h.t <= 0) { h.t = 0.08; out[dir] = true; }
+    }
+    return out;
   },
 
   submitEntry() {
