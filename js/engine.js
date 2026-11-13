@@ -231,17 +231,34 @@ const Input = {
   },
 
   // 任何一個玩家（或鍵盤）撳落確認掣嗰一 frame
+  // confirmSlots：今個 frame 邊幾隻手掣撳咗；confirmOther：鍵盤／觸控／mouse 撳咗
+  // （高分榜入名只認得獎玩家嘅手掣，要知係邊個撳）
+  confirmSlots: [],
+  confirmOther: false,
   confirmJustPressed() {
     let pressed = false;
+    this.confirmSlots = [];
+    this.confirmOther = false;
     for (const slot of [0, 1, 2, 3]) {
       const pad = this._pad(slot);
       const down = !!(pad && pad.buttons[0] && pad.buttons[0].pressed);
-      if (down && !this._prevConfirm[slot]) pressed = true;
+      if (down && !this._prevConfirm[slot]) { pressed = true; this.confirmSlots.push(slot); }
       this._prevConfirm[slot] = down;
     }
-    if (this._keyConfirmEdge) { pressed = true; this._keyConfirmEdge = false; }
-    if (this._touchConfirm) { pressed = true; this._touchConfirm = false; }
+    if (this._keyConfirmEdge) { pressed = true; this.confirmOther = true; this._keyConfirmEdge = false; }
+    if (this._touchConfirm) { pressed = true; this.confirmOther = true; this._touchConfirm = false; }
     return pressed;
+  },
+
+  // 手掣上某粒掣（按標準 Gamepad 對應：1 = B、9 = Start）今個 frame 剛剛撳落
+  _prevBtn: {},
+  padButtonEdge(slot, idx) {
+    const pad = this._pad(slot);
+    const down = !!(pad && pad.buttons[idx] && pad.buttons[idx].pressed);
+    const key = `${slot}:${idx}`;
+    const edge = down && !this._prevBtn[key];
+    this._prevBtn[key] = down;
+    return edge;
   },
   _keyConfirmEdge: false,
 
