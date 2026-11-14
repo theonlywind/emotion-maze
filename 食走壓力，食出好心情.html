@@ -36,9 +36,18 @@ html, body {
   padding: 8px;
 }
 
-/* canvas 672x408（28x17 格 × 24px，比例 1.647），加上 HUD 高度之後按視窗等比縮放 */
+/* [試驗] 文字同介面跟住畫面大細放大（--ui-hud / --ui-panel 由 Layout.fit() 設定）。
+   zoom 會連埋字、間距、圖一齊放大，排版比例保持同以前一樣。
+   還原：刪走呢段同 ui.js 嘅 Layout，#frame 闊度改返 main 嘅版本。 */
+#hud { zoom: var(--ui-hud, 1); }
+.panel > *, .floating, .goal-hint { zoom: var(--ui-panel, 1); }
+.goal-hint { width: max-content; }   /* 放大之後唔好因為 left:50% 而被逼斷行 */
+.staff-card { zoom: var(--ui-panel, 1); }
+
+/* [試驗] 闊度由 ui.js 嘅 Layout.fit() 按視窗計（量埋 HUD 實際高度），用盡成個視窗。
+   呢度只係 JS 未行之前嘅後備值。 */
 #frame {
-  width: min(96vw, calc((96vh - 110px) * 1.647));
+  width: min(98vw, calc((98vh - 110px) * 1.88));
   container-type: inline-size;
   display: flex;
   flex-direction: column;
@@ -718,41 +727,45 @@ window.GAME_DATA = {
   // 特意做到「冇死路」——每個路口都有第二條路走，小朋友唔會被逼到掘頭巷，
   // 呼應 GDD 追捕唔可以造成驚嚇嘅條件。
   level: {
-    completion_token_percent: 0.3,
-    grid_width: 28,
+    // [試驗] 迷宮 v3：28x17 改成 32x17，比例 1.88 更貼近 16:9 螢幕，兩邊唔再留大黑邊。
+    // 牆改成較短嘅段落，路口多咗，但保持：全部連通、冇掘頭路、左右對稱、隧道喺第 8 行。
+    // 代幣多咗（274 粒），所以完成比例由 0.3 降到 0.25，單人目標仍然係 68 粒左右。
+    // 還原：將成段 level 換返 main 上面嘅版本。
+    completion_token_percent: 0.25,
+    grid_width: 32,
     grid_height: 17,
     grid: [
-      "############################",
-      "#o...........##...........o#",
-      "#.####.#####.##.#####.####.#",
-      "#.####.#####.##.#####.####.#",
-      "#..........................#",
-      "#.####.##.########.##.####.#",
-      "#......##....##....##......#",
-      "#.####.##..........##.####.#",
-      "=..........................=",
-      "#.####.##..........##.####.#",
-      "#......##....##....##......#",
-      "#.####.##.########.##.####.#",
-      "#..........................#",
-      "#.####.#####.##.#####.####.#",
-      "#.####.#####.##.#####.####.#",
-      "#o...........##...........o#",
-      "############################"
+      "################################",
+      "#o...##........##........##...o#",
+      "#.##.##.##.###.##.###.##.##.##.#",
+      "#.##.......###....###.......##.#",
+      "#....##.##.....##.....##.##....#",
+      "##.#.##.##.###.##.###.##.##.#.##",
+      "#..#...........##...........#..#",
+      "#.##.##.####........####.##.##.#",
+      "=..............................=",
+      "#.##.##.####........####.##.##.#",
+      "#..#...........##...........#..#",
+      "##.#.##.##.###.##.###.##.##.#.##",
+      "#....##.##.....##.....##.##....#",
+      "#.##.......###....###.......##.#",
+      "#.##.##.##.###.##.###.##.##.##.#",
+      "#o...##........##........##...o#",
+      "################################"
     ],
     tunnel_row: 8,
     ghost_house: {
-      home_position_grid: { x: 13, y: 8 },
-      rect: { x: 11, y: 7, width: 6, height: 3 }
+      home_position_grid: { x: 15, y: 8 },
+      rect: { x: 13, y: 7, width: 6, height: 3 }
     },
     player_spawn_points_grid: [
-      { player_slot: 0, x: 13, y: 12 },
-      { player_slot: 1, x: 14, y: 12 },
-      { player_slot: 2, x: 10, y: 12 },
-      { player_slot: 3, x: 17, y: 12 }
+      { player_slot: 0, x: 14, y: 12 },
+      { player_slot: 1, x: 17, y: 12 },
+      { player_slot: 2, x: 12, y: 12 },
+      { player_slot: 3, x: 19, y: 12 }
     ],
     character_spawn_grid: [
-      { x: 12, y: 8 }, { x: 13, y: 8 }, { x: 14, y: 8 }, { x: 15, y: 8 }
+      { x: 14, y: 8 }, { x: 15, y: 8 }, { x: 16, y: 8 }, { x: 17, y: 8 }
     ]
   },
 
@@ -2016,6 +2029,30 @@ const Render = {
 
 const $ = (id) => document.getElementById(id);
 
+// [試驗] 用盡成個視窗：計 #frame 闊度，同埋按畫面大細放大 HUD／面板文字。
+// 以前排版大約以 1000px 闊為準，所以用「實際闊度 ÷ 1000」做放大倍數。
+const Layout = {
+  BASE: 1000,
+  HUD_BOOST: 1.0,     // HUD 跟畫面等比例放大
+  PANEL_BOOST: 1.25,  // 面板字再大多 25%，遠啲都睇到
+  fit() {
+    const frame = $('frame'), hud = $('hud');
+    if (!frame || !hud) return;
+    const vw = innerWidth - 16, vh = innerHeight - 16, gap = 6, border = 4;
+    const aspect = Maze.width / Maze.height;
+    const root = document.documentElement.style;
+    let w = vw;
+    for (let i = 0; i < 3; i++) {   // HUD 高度會跟放大倍數變，行幾次就收斂
+      root.setProperty('--ui-hud', Math.max(1, (w / this.BASE) * this.HUD_BOOST).toFixed(3));
+      root.setProperty('--ui-panel', Math.max(1, (w / this.BASE) * this.PANEL_BOOST).toFixed(3));
+      frame.style.width = w + 'px';
+      const hudH = hud.getBoundingClientRect().height;
+      w = Math.floor(Math.min(vw, (vh - hudH - gap - border) * aspect + border));
+    }
+    frame.style.width = w + 'px';
+  }
+};
+
 const UI = {
   init() {
     const T = GAME_DATA.uiText;
@@ -2672,6 +2709,8 @@ const App = {
     Maze.reset();
     Render.init($('game'));
     UI.init();
+    Layout.fit();
+    addEventListener('resize', () => Layout.fit());
     StaffMenu.init();
     HighScores.load();
     UI.renderBoard();
