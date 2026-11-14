@@ -118,11 +118,11 @@ window.GAME_DATA = {
     // 新增文案，未經 child-mh-consultant 簽署，暫定。
     character_intro: {
       title_zh: "你會喺迷宮入面遇到佢哋",
-      // 安撫代幣格仔：講每個情緒可以點安撫（2026-11 項目負責人定稿，字要照抄）。
+      // 正面元氣丸格仔：講每個情緒可以點安撫（2026-11 項目負責人定稿，字要照抄）。
       // 原稿用 emoji 圓點，遊戲入面用角色顏色圓點代替，避免部分電腦字型顯示唔到。
       token_card: {
-        title_zh: "安撫代幣",
-        intro_zh: "食咗發光嘅安撫代幣，你就可以幫情緒冷靜返：",
+        title_zh: "正面元氣丸",
+        intro_zh: "食咗發光嘅正面元氣丸，你就可以幫情緒冷靜返：",
         ways: [
           { color: "#4d8dff", text_zh: "藍藍唔開心 → 同爸爸媽媽、老師或者好朋友講出嚟，請佢攬一攬你" },
           { color: "#ff5a4d", text_zh: "阿嬲好嬲 → 慢慢深呼吸三下，數到十，再講「我好嬲，因為……」。冷靜咗之後，同爸爸媽媽傾下發生咩事，一齊諗下下次可以點做" },
@@ -133,7 +133,7 @@ window.GAME_DATA = {
       },
       state_labels_zh: {
         chase: "平時喺迷宮行嚟行去",
-        vulnerable: "你食咗安撫代幣之後",
+        vulnerable: "你食咗正面元氣丸之後",
         caught_gentle: "安撫成功"
       },
       footer_zh: "情緒唔會消失，佢會休息一陣，再同你見面",
@@ -164,16 +164,16 @@ window.GAME_DATA = {
     pre_info_line_index: 1,
     in_game: {
       time_low_warning_zh: "就快好喇，加油！",
-      // 元氣：被情緒角色掂到扣一條，唔會回復；扣到零就出局，
+      // 能量：被情緒角色掂到扣一條，唔會回復；扣到零就出局，
       // 全部玩家出局就 Game Over（2026-11 由「唔死亡、唔懲罰」改成有輸有贏，
-      // 因為試玩後覺得完全冇挑戰）。{n} 會換成剩低幾多點元氣。
-      // 開局目標提示：細路一開波就要知道做乜（食發光安撫代幣 → 追住情緒安撫）
-      goal_hint_zh: "食發光安撫代幣，追住情緒去安撫佢！",
+      // 因為試玩後覺得完全冇挑戰）。{n} 會換成剩低幾多點能量。
+      // 開局目標提示：細路一開波就要知道做乜（食發光正面元氣丸 → 追住情緒安撫）
+      goal_hint_zh: "食發光正面元氣丸，追住情緒去安撫佢！",
       pellet_eaten_zh: "追住佢哋，安撫佢！",
-      lives_label_zh: "元氣",
-      life_lost_zh: "小心！仲有 {n} 點元氣",
-      life_last_zh: "最後一點元氣喇，加油！",
-      player_out_zh: "{p} 元氣用晒喇",
+      lives_label_zh: "能量",
+      life_lost_zh: "小心！仲有 {n} 點能量",
+      life_last_zh: "最後一點能量喇，加油！",
+      player_out_zh: "{p} 能量用晒喇",
       controller_disconnected_zh: "手掣訊號中斷一陣",
       controller_disconnected_reassure_zh: "唔關你事，等一等佢",
       controller_reconnected_zh: "手掣返咗嚟，繼續啦！"
@@ -183,7 +183,7 @@ window.GAME_DATA = {
       team_time_up_zh: "呢一round去到呢度，你哋已經好努力！",
       individual_score_prefix_zh: "你嘅情緒探索分數：",
       game_over_zh: "Game Over",
-      game_over_sub_zh: "元氣用晒喇，下次再嚟挑戰！"
+      game_over_sub_zh: "能量用晒喇，下次再嚟挑戰！"
     },
     high_score_board: {
       title_zh: "今日十大情緒探索家",
@@ -207,8 +207,8 @@ window.GAME_DATA = {
     session_duration_seconds: 120,
     max_players: 4,
 
-    // 元氣參數（見 uiText.in_game.lives_label_zh 嘅說明）
-    lives: 3,                       // 每位玩家幾多點元氣，唔會回復
-    hit_protect_seconds: 2          // 被掂到（仲有元氣）之後嘅無敵時間，避免連環被掂
+    // 能量參數（見 uiText.in_game.lives_label_zh 嘅說明）
+    lives: 3,                       // 每位玩家幾多點能量，唔會回復
+    hit_protect_seconds: 2          // 被掂到（仲有能量）之後嘅無敵時間，避免連環被掂
   }
 };

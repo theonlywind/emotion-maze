@@ -162,7 +162,7 @@ const UI = {
     this.buildTokenCard(box);
   },
 
-  // 安撫代幣格仔：放喺四張角色卡下面，成行闊，講每種情緒點安撫
+  // 正面元氣丸格仔：放喺四張角色卡下面，成行闊，講每種情緒點安撫
   buildTokenCard(box) {
     const T = GAME_DATA.uiText.character_intro.token_card;
     if (!T) return;
@@ -278,7 +278,7 @@ const UI = {
     $('tokens').textContent = String(session.scores.reduce((a, b) => a + b, 0));
   },
 
-  // 每位玩家一格，用佢專屬顏色：P 編號、個人分數、剩餘元氣。
+  // 每位玩家一格，用佢專屬顏色：P 編號、個人分數、剩餘能量。
   // （2026-11 項目負責人要求每位玩家獨立計分同顯示，取代 GDD 4.3「局內唔顯示個人分數」）
   renderPlayerBars(players, scores = []) {
     const box = $('playerBars');
@@ -323,7 +323,7 @@ const UI = {
     this.showGentleTip(text, 2000);
   },
 
-  // 開局／食咗安撫代幣嗰陣嘅大字目標提示
+  // 開局／食咗正面元氣丸嗰陣嘅大字目標提示
   showGoalHint(text, ms) {
     const el = $('goalHint');
     el.textContent = text;
