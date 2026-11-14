@@ -151,6 +151,14 @@ html, body {
 .pbar.offline { opacity: .4; }
 .pbar.out { opacity: .35; }
 
+.pbar-head { display: flex; align-items: baseline; gap: 8px; }
+.pbar-score {
+  font-family: "Courier New", monospace;
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--c);
+  line-height: 1;
+}
 .pbar-name {
   font-family: "Courier New", monospace;
   font-size: 18px;
@@ -476,7 +484,7 @@ html, body {
 
 .end-message { font-size: clamp(17px, 4.4vw, 24px); color: var(--warm); line-height: 1.6; max-width: 90%; white-space: pre-line; }
 .end-message.game-over { color: #ff8a8a; }
-.end-scores { list-style: none; padding: 0; margin: 4px 0 0; font-size: 14px; line-height: 1.9; }
+.end-scores { list-style: none; padding: 0; margin: 4px 0 0; font-size: 22px; font-weight: bold; line-height: 1.7; }
 
 .board-title { font-size: 20px; color: var(--calm); letter-spacing: 2px; }
 .board-list {
@@ -610,7 +618,7 @@ html, body {
       <div class="hud-mid">
         <div class="progress"><div id="progressFill"></div></div>
         <div class="hud-stats">
-          <span>情緒詞彙 <b id="tokens">0/0</b></span>
+          <span>分數 <b id="tokens">0</b></span>
           <span class="hud-soothe">安撫 <span id="soothedSlots"></span></span>
         </div>
       </div>
@@ -1883,6 +1891,27 @@ const Render = {
     }
   },
 
+  // 每位玩家成個角色用自己顏色（P1 黃、P2 藍、P3 粉紅、P4 綠），一眼認到邊個係自己。
+  // 原圖係黃色，用 hue-rotate 轉色；瀏覽器唔支援 canvas filter 就照用原圖（仍然有顏色描邊同標籤）。
+  PLAYER_HUE: [0, 150, 280, 60],
+  _tintCache: {},
+  _tinted(img, slot) {
+    const deg = this.PLAYER_HUE[slot] || 0;
+    if (!deg) return img;
+    const key = img.src + '|' + deg;
+    if (this._tintCache[key]) return this._tintCache[key];
+    const off = document.createElement('canvas');
+    off.width = img.naturalWidth;
+    off.height = img.naturalHeight;
+    const c = off.getContext('2d');
+    if (!('filter' in c)) return (this._tintCache[key] = img);
+    c.imageSmoothingEnabled = false;
+    c.filter = `hue-rotate(${deg}deg) saturate(1.3)`;
+    c.drawImage(img, 0, 0);
+    this._tintCache[key] = off;
+    return off;
+  },
+
   // 將 sprite 染成單色剪影，用嚟砌描邊；同一張圖同一個顏色只做一次
   _silhouetteCache: {},
   _silhouette(img, color) {
@@ -1938,7 +1967,7 @@ const Render = {
           ctx.drawImage(outline, x + ox, y + oy, SPRITE_DRAW, SPRITE_DRAW);
         }
       }
-      ctx.drawImage(img, x, y, SPRITE_DRAW, SPRITE_DRAW);
+      ctx.drawImage(this._tinted(img, p.slot), x, y, SPRITE_DRAW, SPRITE_DRAW);
       if (!p.out) this.drawLivesAbove(p, x, y);
     }
 
@@ -2262,16 +2291,17 @@ const UI = {
       ? Math.min(100, (session.tokensCollected / session.requiredTokens) * 100) : 0;
     $('progressFill').style.width = pct + '%';
     this.renderSoothedSlots(session);
-    $('tokens').textContent = `${session.tokensCollected}/${session.requiredTokens}`;
+    // 中間顯示全隊總分；每位玩家自己嘅分數喺右邊佢個顏色格入面
+    $('tokens').textContent = String(session.scores.reduce((a, b) => a + b, 0));
   },
 
-  // 每位玩家嘅剩餘生命。特登唔喺呢度顯示個人分數——GDD 4.3 唔准喺局內
-  // 喺同伴面前逐個比較分數，個人成績留返去全日高分榜。
-  renderPlayerBars(players) {
+  // 每位玩家一格，用佢專屬顏色：P 編號、個人分數、剩餘元氣。
+  // （2026-11 項目負責人要求每位玩家獨立計分同顯示，取代 GDD 4.3「局內唔顯示個人分數」）
+  renderPlayerBars(players, scores = []) {
     const box = $('playerBars');
     const max = GAME_DATA.config.lives;
     const sig = players.map((p) =>
-      `${p.slot}:${p.lives}:${p.connected ? 1 : 0}:${p.out ? 1 : 0}`).join('|');
+      `${p.slot}:${p.lives}:${p.connected ? 1 : 0}:${p.out ? 1 : 0}:${scores[p.slot] || 0}`).join('|');
     if (sig === this._playerSig) return;
     this._playerSig = sig;
 
@@ -2282,7 +2312,8 @@ const UI = {
       el.style.setProperty('--c', PLAYER_COLORS[p.slot]);
       const hearts = Array.from({ length: max }, (_, i) =>
         `<i class="${i < p.lives ? 'on' : ''}">♥</i>`).join('');
-      el.innerHTML = `<span class="pbar-name">P${p.slot + 1}</span><span class="pbar-pips">${hearts}</span>`;
+      el.innerHTML = `<span class="pbar-head"><span class="pbar-name">P${p.slot + 1}</span>`
+        + `<b class="pbar-score">${scores[p.slot] || 0}</b></span><span class="pbar-pips">${hearts}</span>`;
       box.appendChild(el);
     }
   },
@@ -2353,10 +2384,9 @@ const UI = {
 
   setInfoLine(text) { $('infoLine').textContent = text; },
 
-  // GDD 4.3：單局結束畫面唔可以喺同伴面前逐個比較分數。
-  // 所以多人局淨係顯示團隊合計，個人分數留返去全日高分榜（4.4）先出現；
-  // 單人局冇同伴比較風險，照顯示佢自己個分數。
-  setEndMessage(session, playerCount) {
+  // 結束畫面：單人顯示自己分數；多人逐位用自己顏色列出分數。
+  // （2026-11 項目負責人要求獨立計分，取代 GDD 4.3「唔喺同伴面前比較分數」）
+  setEndMessage(session, playerCount, slots = [0, 1, 2, 3].slice(0, playerCount)) {
     const T = GAME_DATA.uiText.session_end;
     $('endMessage').textContent = session.gameOver
       ? `${T.game_over_zh}\n${T.game_over_sub_zh}`
@@ -2368,11 +2398,16 @@ const UI = {
     if (playerCount <= 1) {
       li.style.color = PLAYER_COLORS[0];
       li.textContent = `${T.individual_score_prefix_zh}${session.scores.reduce((a, b) => a + b, 0)}`;
+      list.appendChild(li);
     } else {
-      li.style.color = 'var(--calm)';
-      li.textContent = `你哋一齊收集咗 ${session.tokensCollected} 個情緒詞彙，安撫咗 ${session.charactersSoothed} 個情緒角色`;
+      // 多人局：每位玩家用自己顏色列出分數（2026-11 項目負責人要求獨立計分）
+      for (const s of slots) {
+        const row = document.createElement('li');
+        row.style.color = PLAYER_COLORS[s];
+        row.textContent = `P${s + 1}　${session.scores[s]} 分`;
+        list.appendChild(row);
+      }
     }
-    list.appendChild(li);
   },
 
   renderBoard() {
@@ -2785,7 +2820,7 @@ const App = {
       case Flow.END:
         UI.hideTimeWarning();
         UI.hideGoalHint();
-        UI.setEndMessage(this.game.session, this.game.players.length);
+        UI.setEndMessage(this.game.session, this.game.players.length, this.game.players.map((p) => p.slot));
         UI.showPanel('endPanel');
         break;
 
@@ -2907,7 +2942,7 @@ const App = {
       case Flow.PLAYING:
         this.game.update(dt);
         UI.updateHud(this.game.session);
-        UI.renderPlayerBars(this.game.players);
+        UI.renderPlayerBars(this.game.players, this.game.session.scores);
         break;
 
       case Flow.END:

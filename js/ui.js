@@ -236,16 +236,17 @@ const UI = {
       ? Math.min(100, (session.tokensCollected / session.requiredTokens) * 100) : 0;
     $('progressFill').style.width = pct + '%';
     this.renderSoothedSlots(session);
-    $('tokens').textContent = `${session.tokensCollected}/${session.requiredTokens}`;
+    // 中間顯示全隊總分；每位玩家自己嘅分數喺右邊佢個顏色格入面
+    $('tokens').textContent = String(session.scores.reduce((a, b) => a + b, 0));
   },
 
-  // 每位玩家嘅剩餘生命。特登唔喺呢度顯示個人分數——GDD 4.3 唔准喺局內
-  // 喺同伴面前逐個比較分數，個人成績留返去全日高分榜。
-  renderPlayerBars(players) {
+  // 每位玩家一格，用佢專屬顏色：P 編號、個人分數、剩餘元氣。
+  // （2026-11 項目負責人要求每位玩家獨立計分同顯示，取代 GDD 4.3「局內唔顯示個人分數」）
+  renderPlayerBars(players, scores = []) {
     const box = $('playerBars');
     const max = GAME_DATA.config.lives;
     const sig = players.map((p) =>
-      `${p.slot}:${p.lives}:${p.connected ? 1 : 0}:${p.out ? 1 : 0}`).join('|');
+      `${p.slot}:${p.lives}:${p.connected ? 1 : 0}:${p.out ? 1 : 0}:${scores[p.slot] || 0}`).join('|');
     if (sig === this._playerSig) return;
     this._playerSig = sig;
 
@@ -256,7 +257,8 @@ const UI = {
       el.style.setProperty('--c', PLAYER_COLORS[p.slot]);
       const hearts = Array.from({ length: max }, (_, i) =>
         `<i class="${i < p.lives ? 'on' : ''}">♥</i>`).join('');
-      el.innerHTML = `<span class="pbar-name">P${p.slot + 1}</span><span class="pbar-pips">${hearts}</span>`;
+      el.innerHTML = `<span class="pbar-head"><span class="pbar-name">P${p.slot + 1}</span>`
+        + `<b class="pbar-score">${scores[p.slot] || 0}</b></span><span class="pbar-pips">${hearts}</span>`;
       box.appendChild(el);
     }
   },
@@ -327,10 +329,9 @@ const UI = {
 
   setInfoLine(text) { $('infoLine').textContent = text; },
 
-  // GDD 4.3：單局結束畫面唔可以喺同伴面前逐個比較分數。
-  // 所以多人局淨係顯示團隊合計，個人分數留返去全日高分榜（4.4）先出現；
-  // 單人局冇同伴比較風險，照顯示佢自己個分數。
-  setEndMessage(session, playerCount) {
+  // 結束畫面：單人顯示自己分數；多人逐位用自己顏色列出分數。
+  // （2026-11 項目負責人要求獨立計分，取代 GDD 4.3「唔喺同伴面前比較分數」）
+  setEndMessage(session, playerCount, slots = [0, 1, 2, 3].slice(0, playerCount)) {
     const T = GAME_DATA.uiText.session_end;
     $('endMessage').textContent = session.gameOver
       ? `${T.game_over_zh}\n${T.game_over_sub_zh}`
@@ -342,11 +343,16 @@ const UI = {
     if (playerCount <= 1) {
       li.style.color = PLAYER_COLORS[0];
       li.textContent = `${T.individual_score_prefix_zh}${session.scores.reduce((a, b) => a + b, 0)}`;
+      list.appendChild(li);
     } else {
-      li.style.color = 'var(--calm)';
-      li.textContent = `你哋一齊收集咗 ${session.tokensCollected} 個情緒詞彙，安撫咗 ${session.charactersSoothed} 個情緒角色`;
+      // 多人局：每位玩家用自己顏色列出分數（2026-11 項目負責人要求獨立計分）
+      for (const s of slots) {
+        const row = document.createElement('li');
+        row.style.color = PLAYER_COLORS[s];
+        row.textContent = `P${s + 1}　${session.scores[s]} 分`;
+        list.appendChild(row);
+      }
     }
-    list.appendChild(li);
   },
 
   renderBoard() {

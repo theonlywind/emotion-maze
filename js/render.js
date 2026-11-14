@@ -120,6 +120,27 @@ const Render = {
     }
   },
 
+  // 每位玩家成個角色用自己顏色（P1 黃、P2 藍、P3 粉紅、P4 綠），一眼認到邊個係自己。
+  // 原圖係黃色，用 hue-rotate 轉色；瀏覽器唔支援 canvas filter 就照用原圖（仍然有顏色描邊同標籤）。
+  PLAYER_HUE: [0, 150, 280, 60],
+  _tintCache: {},
+  _tinted(img, slot) {
+    const deg = this.PLAYER_HUE[slot] || 0;
+    if (!deg) return img;
+    const key = img.src + '|' + deg;
+    if (this._tintCache[key]) return this._tintCache[key];
+    const off = document.createElement('canvas');
+    off.width = img.naturalWidth;
+    off.height = img.naturalHeight;
+    const c = off.getContext('2d');
+    if (!('filter' in c)) return (this._tintCache[key] = img);
+    c.imageSmoothingEnabled = false;
+    c.filter = `hue-rotate(${deg}deg) saturate(1.3)`;
+    c.drawImage(img, 0, 0);
+    this._tintCache[key] = off;
+    return off;
+  },
+
   // 將 sprite 染成單色剪影，用嚟砌描邊；同一張圖同一個顏色只做一次
   _silhouetteCache: {},
   _silhouette(img, color) {
@@ -175,7 +196,7 @@ const Render = {
           ctx.drawImage(outline, x + ox, y + oy, SPRITE_DRAW, SPRITE_DRAW);
         }
       }
-      ctx.drawImage(img, x, y, SPRITE_DRAW, SPRITE_DRAW);
+      ctx.drawImage(this._tinted(img, p.slot), x, y, SPRITE_DRAW, SPRITE_DRAW);
       if (!p.out) this.drawLivesAbove(p, x, y);
     }
 

@@ -144,6 +144,14 @@ html, body {
 .pbar.offline { opacity: .4; }
 .pbar.out { opacity: .35; }
 
+.pbar-head { display: flex; align-items: baseline; gap: 8px; }
+.pbar-score {
+  font-family: "Courier New", monospace;
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--c);
+  line-height: 1;
+}
 .pbar-name {
   font-family: "Courier New", monospace;
   font-size: 18px;
@@ -469,7 +477,7 @@ html, body {
 
 .end-message { font-size: clamp(17px, 4.4vw, 24px); color: var(--warm); line-height: 1.6; max-width: 90%; white-space: pre-line; }
 .end-message.game-over { color: #ff8a8a; }
-.end-scores { list-style: none; padding: 0; margin: 4px 0 0; font-size: 14px; line-height: 1.9; }
+.end-scores { list-style: none; padding: 0; margin: 4px 0 0; font-size: 22px; font-weight: bold; line-height: 1.7; }
 
 .board-title { font-size: 20px; color: var(--calm); letter-spacing: 2px; }
 .board-list {

@@ -231,7 +231,7 @@ const App = {
       case Flow.END:
         UI.hideTimeWarning();
         UI.hideGoalHint();
-        UI.setEndMessage(this.game.session, this.game.players.length);
+        UI.setEndMessage(this.game.session, this.game.players.length, this.game.players.map((p) => p.slot));
         UI.showPanel('endPanel');
         break;
 
@@ -353,7 +353,7 @@ const App = {
       case Flow.PLAYING:
         this.game.update(dt);
         UI.updateHud(this.game.session);
-        UI.renderPlayerBars(this.game.players);
+        UI.renderPlayerBars(this.game.players, this.game.session.scores);
         break;
 
       case Flow.END:
