@@ -388,6 +388,29 @@ html, body {
   border-radius: 8px;
   padding: 4px 6px;
 }
+/* 加咗安撫代幣格仔之後內容多咗，呢個版面整體縮細少少，確保一版睇晒（唔刪字） */
+#charactersPanel { gap: 4px; padding: 10px 16px; }
+#charactersPanel > * { zoom: calc(var(--ui-panel, 1) * 0.86); }
+
+.token-card {
+  grid-column: 1 / -1;          /* 成行闊，放喺四張角色卡下面 */
+  text-align: left;
+  padding: 6px 12px;
+  border-color: #3a6fb0;
+}
+.token-head { display: flex; align-items: center; gap: 8px; }
+.token-head b { font-size: 15px; color: var(--calm); }
+.token-orb {                     /* 模仿迷宮入面發光嘅安撫代幣 */
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle, #e9fdff 0 35%, #6ee7ff 60%, rgba(110, 231, 255, 0) 72%);
+  box-shadow: 0 0 8px 2px rgba(110, 231, 255, .6);
+}
+.token-intro { font-size: 12px; color: #cfd8ff; margin: 2px 0; }
+.token-ways { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.token-ways li { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; line-height: 1.45; color: var(--ink); }
+.token-ways li i { flex: none; width: 9px; height: 9px; border-radius: 50%; margin-top: 5px; }
+.token-foot { font-size: 12px; color: var(--warm); margin-top: 3px; }
+
 .char-head {
   display: flex;
   align-items: baseline;
@@ -842,6 +865,19 @@ window.GAME_DATA = {
     // 新增文案，未經 child-mh-consultant 簽署，暫定。
     character_intro: {
       title_zh: "你會喺迷宮入面遇到佢哋",
+      // 安撫代幣格仔：講每個情緒可以點安撫（2026-11 項目負責人定稿，字要照抄）。
+      // 原稿用 emoji 圓點，遊戲入面用角色顏色圓點代替，避免部分電腦字型顯示唔到。
+      token_card: {
+        title_zh: "安撫代幣",
+        intro_zh: "食咗發光嘅安撫代幣，你就可以幫情緒冷靜返：",
+        ways: [
+          { color: "#4d8dff", text_zh: "藍藍唔開心 → 同爸爸媽媽、老師或者好朋友講出嚟，請佢攬一攬你" },
+          { color: "#ff5a4d", text_zh: "阿嬲好嬲 → 慢慢深呼吸三下，數到十，再講「我好嬲，因為……」。冷靜咗之後，同爸爸媽媽傾下發生咩事，一齊諗下下次可以點做" },
+          { color: "#b07cff", text_zh: "驚驚好驚 → 拖住爸爸媽媽嘅手，請佢陪住你" },
+          { color: "#5fd68a", text_zh: "擔心蟲好擔心 → 將擔心畫出嚟或者寫低，再揀一樣而家做到嘅小事去做" }
+        ],
+        footer_zh: "情緒唔係壞嘢，照顧佢就得㗎！"
+      },
       state_labels_zh: {
         chase: "平時喺迷宮行嚟行去",
         vulnerable: "你食咗安撫代幣之後",
@@ -2214,6 +2250,44 @@ const UI = {
 
       box.appendChild(card);
     }
+    this.buildTokenCard(box);
+  },
+
+  // 安撫代幣格仔：放喺四張角色卡下面，成行闊，講每種情緒點安撫
+  buildTokenCard(box) {
+    const T = GAME_DATA.uiText.character_intro.token_card;
+    if (!T) return;
+    const card = document.createElement('div');
+    card.className = 'char-card token-card';
+    const head = document.createElement('div');
+    head.className = 'token-head';
+    head.innerHTML = '<i class="token-orb"></i>';
+    const title = document.createElement('b');
+    title.textContent = T.title_zh;
+    head.appendChild(title);
+    card.appendChild(head);
+    const intro = document.createElement('div');
+    intro.className = 'token-intro';
+    intro.textContent = T.intro_zh;
+    card.appendChild(intro);
+    const list = document.createElement('ul');
+    list.className = 'token-ways';
+    for (const w of T.ways) {
+      const li = document.createElement('li');
+      const dot = document.createElement('i');
+      dot.style.background = w.color;
+      li.appendChild(dot);
+      const span = document.createElement('span');
+      span.textContent = w.text_zh;
+      li.appendChild(span);
+      list.appendChild(li);
+    }
+    card.appendChild(list);
+    const foot = document.createElement('div');
+    foot.className = 'token-foot';
+    foot.textContent = T.footer_zh;
+    card.appendChild(foot);
+    box.appendChild(card);
   },
 
   // ---- 手掣連接（參考 Switch 嘅手掣畫面）----

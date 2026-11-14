@@ -159,6 +159,44 @@ const UI = {
 
       box.appendChild(card);
     }
+    this.buildTokenCard(box);
+  },
+
+  // 安撫代幣格仔：放喺四張角色卡下面，成行闊，講每種情緒點安撫
+  buildTokenCard(box) {
+    const T = GAME_DATA.uiText.character_intro.token_card;
+    if (!T) return;
+    const card = document.createElement('div');
+    card.className = 'char-card token-card';
+    const head = document.createElement('div');
+    head.className = 'token-head';
+    head.innerHTML = '<i class="token-orb"></i>';
+    const title = document.createElement('b');
+    title.textContent = T.title_zh;
+    head.appendChild(title);
+    card.appendChild(head);
+    const intro = document.createElement('div');
+    intro.className = 'token-intro';
+    intro.textContent = T.intro_zh;
+    card.appendChild(intro);
+    const list = document.createElement('ul');
+    list.className = 'token-ways';
+    for (const w of T.ways) {
+      const li = document.createElement('li');
+      const dot = document.createElement('i');
+      dot.style.background = w.color;
+      li.appendChild(dot);
+      const span = document.createElement('span');
+      span.textContent = w.text_zh;
+      li.appendChild(span);
+      list.appendChild(li);
+    }
+    card.appendChild(list);
+    const foot = document.createElement('div');
+    foot.className = 'token-foot';
+    foot.textContent = T.footer_zh;
+    card.appendChild(foot);
+    box.appendChild(card);
   },
 
   // ---- 手掣連接（參考 Switch 嘅手掣畫面）----
